@@ -22,7 +22,6 @@ interface SOOSSBOMAnalysisArgs {
   integrationName: string;
   integrationType: string;
   logLevel: LogLevel;
-  onFailure: string;
   operatingEnvironment: string;
   otherOptions: string;
   projectName: string;
@@ -37,30 +36,66 @@ class SOOSSBOMAnalysis {
   static parseArgs(): SOOSSBOMAnalysisArgs {
     const parser = new ArgumentParser({ description: "SOOS SBOM" });
 
-    parser.add_argument("sbomPath", {
-      help: "The SBOM File to scan, it could be the location of the file or the file itself. When location is specified only the first file found will be scanned.",
-    });
-
-    parser.add_argument("--clientId", {
-      help: "SOOS Client ID - get yours from https://app.soos.io/integrate/sca",
-      default: getEnvVariable(CONSTANTS.SOOS.CLIENT_ID_ENV_VAR),
-      required: false,
-    });
-
     parser.add_argument("--apiKey", {
-      help: "SOOS API Key - get yours from https://app.soos.io/integrate/sca",
+      help: "SOOS API Key - get yours from https://app.soos.io/integrate/sbom",
       default: getEnvVariable(CONSTANTS.SOOS.API_KEY_ENV_VAR),
       required: false,
-    });
-
-    parser.add_argument("--projectName", {
-      help: "Project Name - this is what will be displayed in the SOOS app.",
-      required: true,
     });
 
     parser.add_argument("--apiURL", {
       help: "SOOS API URL - Intended for internal use only, do not modify.",
       default: "https://api.soos.io/api/",
+      required: false,
+    });
+
+    parser.add_argument("--appVersion", {
+      help: "App Version - Intended for internal use only.",
+      required: false,
+    });
+
+    parser.add_argument("--branchName", {
+      help: "The name of the branch from the SCM System.",
+      default: null,
+      required: false,
+    });
+
+    parser.add_argument("--branchURI", {
+      help: "The URI to the branch from the SCM System.",
+      default: null,
+      required: false,
+    });
+
+    parser.add_argument("--buildURI", {
+      help: "URI to CI build info.",
+      default: null,
+      required: false,
+    });
+
+    parser.add_argument("--buildVersion", {
+      help: "Version of application build artifacts.",
+      default: null,
+      required: false,
+    });
+
+    parser.add_argument("--clientId", {
+      help: "SOOS Client ID - get yours from https://app.soos.io/integrate/sbom",
+      default: getEnvVariable(CONSTANTS.SOOS.CLIENT_ID_ENV_VAR),
+      required: false,
+    });
+
+    parser.add_argument("--commitHash", {
+      help: "The commit hash value from the SCM System.",
+      default: null,
+      required: false,
+    });
+
+    parser.add_argument("--integrationName", {
+      help: "Integration Name - Intended for internal use only.",
+      required: false,
+    });
+
+    parser.add_argument("--integrationType", {
+      help: "Integration Type - Intended for internal use only.",
       required: false,
     });
 
@@ -78,81 +113,25 @@ class SOOSSBOMAnalysis {
       },
     });
 
+    parser.add_argument("--operatingEnvironment", {
+      help: "Set Operating environment for information purposes only.",
+      default: null,
+      required: false,
+    });
+
     parser.add_argument("--otherOptions", {
       help: "Other Options to pass to syft.",
       default: null,
       required: false,
     });
 
-    parser.add_argument("--integrationName", {
-      help: "Integration Name - Intended for internal use only.",
-      type: String,
-      required: false,
-    });
-
-    parser.add_argument("--integrationType", {
-      help: "Integration Type - Intended for internal use only.",
-      type: String,
-      required: false,
+    parser.add_argument("--projectName", {
+      help: "Project Name - this is what will be displayed in the SOOS app.",
+      required: true,
     });
 
     parser.add_argument("--scriptVersion", {
       help: "Script Version - Intended for internal use only.",
-      type: String,
-      required: false,
-    });
-
-    parser.add_argument("--appVersion", {
-      help: "App Version - Intended for internal use only.",
-      type: String,
-      required: false,
-    });
-
-    parser.add_argument("--onFailure", {
-      help: "Action to perform when the scan fails. Options: fail_the_build, continue_on_failure.",
-      type: String,
-      default: "continue_on_failure",
-      required: false,
-    });
-
-    parser.add_argument("--commitHash", {
-      help: "The commit hash value from the SCM System.",
-      type: String,
-      default: null,
-      required: false,
-    });
-
-    parser.add_argument("--branchName", {
-      help: "The name of the branch from the SCM System.",
-      type: String,
-      default: null,
-      required: false,
-    });
-
-    parser.add_argument("--branchURI", {
-      help: "The URI to the branch from the SCM System.",
-      default: null,
-      required: false,
-    });
-
-    parser.add_argument("--buildVersion", {
-      help: "Version of application build artifacts.",
-      type: String,
-      default: null,
-      required: false,
-    });
-
-    parser.add_argument("--buildURI", {
-      help: "URI to CI build info.",
-      type: String,
-      default: null,
-      required: false,
-    });
-
-    parser.add_argument("--operatingEnvironment", {
-      help: "Set Operating environment for information purposes only.",
-      type: String,
-      default: null,
       required: false,
     });
 
@@ -163,6 +142,10 @@ class SOOSSBOMAnalysis {
       required: false,
     });
 
+    parser.add_argument("sbomPath", {
+      help: "The SBOM File to scan, it could be the location of the file or the file itself. When location is specified only the first file found will be scanned.",
+    });
+
     soosLogger.info("Parsing arguments");
     return parser.parse_args();
   }
@@ -171,6 +154,7 @@ class SOOSSBOMAnalysis {
     let projectHash: string | undefined;
     let branchHash: string | undefined;
     let analysisId: string | undefined;
+    const filePath = await this.findSbomFilePath();
     const soosAnalysisApiClient = new SOOSAnalysisApiClient(this.args.apiKey, this.args.apiURL);
     try {
       soosLogger.info("Starting SOOS SBOM Analysis");
@@ -208,9 +192,9 @@ class SOOSSBOMAnalysis {
 
       soosLogger.info("Uploading SBOM File");
 
-      const formData = await this.getSbomAsFormData();
+      const formData = await this.getSbomAsFormData(filePath);
 
-      const containerFileUploadResponse = await soosAnalysisApiClient.uploadManifestFiles({
+      const uploadManifestFilesResponse = await soosAnalysisApiClient.uploadManifestFiles({
         clientId: this.args.clientId,
         projectHash,
         branchHash,
@@ -220,14 +204,14 @@ class SOOSSBOMAnalysis {
 
       soosLogger.info(
         ` SBOM Files: \n`,
-        `  ${containerFileUploadResponse.message} \n`,
-        containerFileUploadResponse.manifests
+        `  ${uploadManifestFilesResponse.message} \n`,
+        uploadManifestFilesResponse.manifests
           ?.map((m) => `  ${m.name}: ${m.statusMessage}`)
           .join("\n")
       );
 
       soosLogger.logLineSeparator();
-      soosLogger.info("Starting Analysis scan");
+      soosLogger.info("Starting SBOM Analysis scan");
       await soosAnalysisApiClient.startScan({
         clientId: this.args.clientId,
         projectHash,
@@ -252,9 +236,8 @@ class SOOSSBOMAnalysis {
     }
   }
 
-  async getSbomAsFormData(): Promise<FormData> {
+  async getSbomAsFormData(filePath: string): Promise<FormData> {
     try {
-      const filePath = await this.findSbomFilePath();
       const fileReadStream = FileSystem.createReadStream(filePath, {
         encoding: SOOS_CONSTANTS.FileUploads.Encoding,
       });
