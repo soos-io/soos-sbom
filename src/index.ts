@@ -1,6 +1,11 @@
 #!/usr/bin/env node
 import { LogLevel, SOOS_CONSTANTS, ScanStatus, ScanType, soosLogger } from "@soos-io/api-client";
-import { getEnvVariable, obfuscateProperties } from "@soos-io/api-client/dist/utilities";
+import {
+  getEnvVariable,
+  obfuscateProperties,
+  ensureEnumValue,
+  ensureValue,
+} from "@soos-io/api-client/dist/utilities";
 import { ArgumentParser } from "argparse";
 import * as FileSystem from "fs";
 import * as Path from "path";
@@ -97,7 +102,7 @@ class SOOSSBOMAnalysis {
     parser.add_argument("--integrationType", {
       help: "Integration Type - Intended for internal use only.",
       required: false,
-      const: CONSTANTS.SOOS.DEFAULT_INTEGRATION_TYPE,
+      default: CONSTANTS.SOOS.DEFAULT_INTEGRATION_TYPE,
     });
 
     parser.add_argument("--logLevel", {
@@ -105,12 +110,7 @@ class SOOSSBOMAnalysis {
       default: LogLevel.INFO,
       required: false,
       type: (value: string) => {
-        const upperCaseValue = value.toUpperCase();
-        if (upperCaseValue in LogLevel) {
-          return LogLevel[upperCaseValue as keyof typeof LogLevel];
-        } else {
-          throw new Error(`Invalid log level: ${value}`);
-        }
+        return ensureEnumValue(LogLevel, value);
       },
     });
 
@@ -288,6 +288,8 @@ class SOOSSBOMAnalysis {
           2
         )
       );
+      ensureValue(args.clientId, "clientId");
+      ensureValue(args.apiKey, "apiKey");
       soosLogger.logLineSeparator();
       const soosSBOMAnalysis = new SOOSSBOMAnalysis(args);
       await soosSBOMAnalysis.runAnalysis();
