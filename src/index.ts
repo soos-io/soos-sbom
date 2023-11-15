@@ -28,7 +28,6 @@ interface SOOSSBOMAnalysisArgs {
   integrationType: string;
   logLevel: LogLevel;
   operatingEnvironment: string;
-  otherOptions: string;
   projectName: string;
   scriptVersion: string;
   sbomPath: string;
@@ -116,12 +115,6 @@ class SOOSSBOMAnalysis {
 
     parser.add_argument("--operatingEnvironment", {
       help: "Set Operating environment for information purposes only.",
-      default: null,
-      required: false,
-    });
-
-    parser.add_argument("--otherOptions", {
-      help: "Other Options to pass to syft.",
       default: null,
       required: false,
     });
