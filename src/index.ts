@@ -4,7 +4,7 @@ import {
   getEnvVariable,
   obfuscateProperties,
   ensureEnumValue,
-  ensureValue,
+  ensureNonEmptyValue,
 } from "@soos-io/api-client/dist/utilities";
 import { ArgumentParser } from "argparse";
 import * as FileSystem from "fs";
@@ -50,6 +50,9 @@ class SOOSSBOMAnalysis {
       help: "SOOS API URL - Intended for internal use only, do not modify.",
       default: "https://api.soos.io/api/",
       required: false,
+      type: (value: string) => {
+        return ensureNonEmptyValue(value, "apiURL");
+      },
     });
 
     parser.add_argument("--appVersion", {
@@ -122,6 +125,9 @@ class SOOSSBOMAnalysis {
     parser.add_argument("--projectName", {
       help: "Project Name - this is what will be displayed in the SOOS app.",
       required: true,
+      type: (value: string) => {
+        return ensureNonEmptyValue(value, "projectName");
+      },
     });
 
     parser.add_argument("--scriptVersion", {
@@ -281,8 +287,8 @@ class SOOSSBOMAnalysis {
           2
         )
       );
-      ensureValue(args.clientId, "clientId");
-      ensureValue(args.apiKey, "apiKey");
+      ensureNonEmptyValue(args.clientId, "clientId");
+      ensureNonEmptyValue(args.apiKey, "apiKey");
       soosLogger.logLineSeparator();
       const soosSBOMAnalysis = new SOOSSBOMAnalysis(args);
       await soosSBOMAnalysis.runAnalysis();
