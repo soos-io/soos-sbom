@@ -12,10 +12,14 @@ If you maintain an Open Source project, sign up for the Free as in Beer [SOOS Co
   - [npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
   
 ## Installation
-run `npm i -g @soos-io/soos-sbom@latest`
 
-## Usage
-Run `soos-sbom` from any terminal and add the parameters you want.
+### Globally
+run `npm i -g @soos-io/soos-sbom@latest`
+Then Run `soos-sbom` from any terminal and add the parameters you want.
+
+### Locally
+run `npm install --prefix ./soos @soos-io/soos-sbom`
+Then run from the same terminal `node ./soos/node_modules/@soos-io/soos-sbom/bin/index.js`
 
 ## Parameters
 
