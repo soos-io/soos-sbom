@@ -26,18 +26,20 @@ Then run from the same terminal `node ./soos/node_modules/@soos-io/soos-sbom/bin
 
 | Argument                | Default                                   | Description                                                                                                                          |
 | ----------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `--apiKey`              | `getEnvVariable(CONSTANTS.SOOS.API_KEY_ENV_VAR)` | SOOS API Key - get yours from [SOOS Integration](https://app.soos.io/integrate/sbom).                                           |
+| `--apiKey`              | N/A | SSOOS API Key - get yours from [SOOS Integration](https://app.soos.io/integrate/sbom). Uses `SOOS_API_KEY` env value if present.                                        |
 | `--apiURL`              | N/A                                       | SOOS API URL - Intended for internal use only, do not modify.                                                    |
 | `--appVersion`          | N/A                                       | App Version - Intended for internal use only.                                                                                      |
 | `--branchName`          | `null`                                    | The name of the branch from the SCM System.                                                                                         |
 | `--branchURI`           | `null`                                    | The URI to the branch from the SCM System.                                                                                          |
 | `--buildURI`            | `null`                                    | URI to CI build info.                                                                                                               |
 | `--buildVersion`        | `null`                                    | Version of application build artifacts.                                                                                             |
-| `--clientId`            | `getEnvVariable(CONSTANTS.SOOS.CLIENT_ID_ENV_VAR)` | SOOS Client ID - get yours from [SOOS Integration](https://app.soos.io/integrate/sbom).                                           |
+| `--clientId`            | N/A | SSOOS Client ID - get yours from [SOOS Integration](https://app.soos.io/integrate/sbom). Uses `SOOS_API_CLIENT` env value if present.                                           |
 | `--commitHash`          | `null`                                    | The commit hash value from the SCM System.                                                                                         |
 | `--integrationName`     | N/A                                       | Integration Name - Intended for internal use only.                                                                                 |
 | `--integrationType`     | N/A                                       | Integration Type - Intended for internal use only.                                                                                 |
-| `--logLevel`            | `LogLevel.INFO`                          | Minimum level to show logs: PASS, IGNORE, INFO, WARN, or FAIL.                                                                      |
+| `--logLevel`            | `INFO`                          | Minimum level to show logs: PASS, IGNORE, INFO, WARN, or FAIL.                                                                      |
+
+| `--onFailure`            | `continue_on_failure`                     | Action to perform when the scan fails. Options: fail_the_build, continue_on_failure.                                                 |
 | `--operatingEnvironment`| `null`                                    | Set Operating environment for information purposes only.                                                                           |
 | `--otherOptions`        | `null`                                    | Other Options to pass to syft.                                                                                                      |
 | `--projectName`         | N/A                                       | Project Name - this is what will be displayed in the SOOS app.                                                                     |

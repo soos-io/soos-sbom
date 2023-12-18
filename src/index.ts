@@ -2,47 +2,24 @@
 import {
   IntegrationName,
   IntegrationType,
-  LogLevel,
-  OnFailure,
   ScanStatus,
   ScanType,
   soosLogger,
 } from "@soos-io/api-client";
 import {
   obfuscateProperties,
-  ensureNonEmptyValue,
   getAnalysisExitCode,
 } from "@soos-io/api-client/dist/utilities";
 import * as FileSystem from "fs";
 import * as Path from "path";
 import { exit } from "process";
-import AnalysisArgumentParser from "@soos-io/api-client/dist/services/AnalysisArgumentParser";
+import AnalysisArgumentParser, { IBaseScanArguments } from "@soos-io/api-client/dist/services/AnalysisArgumentParser";
 import { version } from "../package.json";
 import AnalysisService from "@soos-io/api-client/dist/services/AnalysisService";
 import { SOOS_SBOM_CONSTANTS } from "./constants";
 
-interface SOOSSBOMAnalysisArgs {
-  apiKey: string;
-  apiURL: string;
-  appVersion: string;
-  branchName: string;
-  branchUri: string;
-  buildUri: string;
-  buildVersion: string;
-  clientId: string;
-  commitHash: string;
-  contributingDeveloperId: string;
-  contributingDeveloperSource: string;
-  contributingDeveloperSourceName: string;
-  integrationName: IntegrationName;
-  integrationType: IntegrationType;
-  logLevel: LogLevel;
-  onFailure: OnFailure;
-  operatingEnvironment: string;
-  projectName: string;
-  scriptVersion: string;
+interface SOOSSBOMAnalysisArgs extends IBaseScanArguments{
   sbomPath: string;
-  verbose: boolean;
 }
 
 class SOOSSBOMAnalysis {
@@ -83,8 +60,8 @@ class SOOSSBOMAnalysis {
         branchName: this.args.branchName,
         commitHash: this.args.commitHash,
         buildVersion: this.args.buildVersion,
-        buildUri: this.args.buildUri,
-        branchUri: this.args.branchUri,
+        buildUri: this.args.buildURI,
+        branchUri: this.args.branchURI,
         operatingEnvironment: this.args.operatingEnvironment,
         integrationName: this.args.integrationName,
         integrationType: this.args.integrationType,
@@ -212,8 +189,7 @@ class SOOSSBOMAnalysis {
           2,
         ),
       );
-      ensureNonEmptyValue(args.clientId, "clientId");
-      ensureNonEmptyValue(args.apiKey, "apiKey");
+      
       soosLogger.logLineSeparator();
       const soosSBOMAnalysis = new SOOSSBOMAnalysis(args);
       await soosSBOMAnalysis.runAnalysis();
