@@ -15,6 +15,16 @@
     "typecheck": "tsc --noEmit",
     "check": "npm run format && npm run typecheck && npm outdated"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/soos-io/soos-sbom.git"
+  },
+  "author": "SOOS",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/soos-io/soos-sbom/issues"
+  },
+  "homepage": "https://github.com/soos-io/soos-sbom#readme",
   "dependencies": {
     "@soos-io/api-client": "^0.2.16",
     "argparse": "^2.0.1",
@@ -29,7 +39,5 @@
   },
   "bin": {
     "soos-sbom": "bin/index.js"
-  },
-  "author": "SOOS",
-  "license": "MIT"
+  }
 }
