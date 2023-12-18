@@ -2,7 +2,7 @@
 
 SOOS is an independent software security company, located in Winooski, VT USA, building security software for your team. [SOOS, Software security, simplified](https://soos.io).
 
-Use SOOS to scan your software for [vulnerabilities](https://app.soos.io/research/vulnerabilities) and [open source license](https://app.soos.io/research/licenses) issues with [SOOS Core SCA](https://soos.io/sca-product). [Generate SBOMs](https://kb.soos.io/help/generating-a-software-bill-of-materials-sbom). Govern your open source dependencies. Run the [SOOS DAST vulnerability scanner](https://soos.io/dast-product) against your web apps or APIs.
+Use SOOS to scan your software for [vulnerabilities](https://app.soos.io/research/vulnerabilities) and [open source license](https://app.soos.io/research/licenses) issues with [SOOS Core SCA](https://soos.io/products/sca). [Generate SBOMs](https://kb.soos.io/help/soos-reports-for-export). Govern your open source dependencies. Run the [SOOS DAST vulnerability scanner](https://soos.io/products/dast) against your web apps or APIs.
 
 [Demo SOOS](https://app.soos.io/demo) or [Register for a Free Trial](https://app.soos.io/register).
 
@@ -27,7 +27,7 @@ Then run from the same terminal `node ./soos/node_modules/@soos-io/soos-sbom/bin
 | Argument                | Default                                   | Description                                                                                                                          |
 | ----------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | `--apiKey`              | `getEnvVariable(CONSTANTS.SOOS.API_KEY_ENV_VAR)` | SOOS API Key - get yours from [SOOS Integration](https://app.soos.io/integrate/sbom).                                           |
-| `--apiURL`              | `"https://api.soos.io/api/"`              | SOOS API URL - Intended for internal use only, do not modify.                                                                       |
+| `--apiURL`              | N/A                                       | SOOS API URL - Intended for internal use only, do not modify.                                                    |
 | `--appVersion`          | N/A                                       | App Version - Intended for internal use only.                                                                                      |
 | `--branchName`          | `null`                                    | The name of the branch from the SCM System.                                                                                         |
 | `--branchURI`           | `null`                                    | The URI to the branch from the SCM System.                                                                                          |

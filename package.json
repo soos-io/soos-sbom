@@ -1,7 +1,7 @@
 {
   "name": "@soos-io/soos-sbom",
-  "version": "0.1.5",
-  "description": "SOOS wrapper script to upload sboms.",
+  "version": "0.1.6",
+  "description": "SOOS wrapper script to upload SBOMs.",
   "main": "bin/index.js",
   "scripts": {
     "setup:install": "npm install",
@@ -15,21 +15,29 @@
     "typecheck": "tsc --noEmit",
     "check": "npm run format && npm run typecheck && npm outdated"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/soos-io/soos-sbom.git"
+  },
+  "author": "SOOS",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/soos-io/soos-sbom/issues"
+  },
+  "homepage": "https://github.com/soos-io/soos-sbom#readme",
   "dependencies": {
-    "@soos-io/api-client": "^0.1.9",
+    "@soos-io/api-client": "^0.2.16",
     "argparse": "^2.0.1",
+    "glob": "^10.3.10",
     "tslib": "^2.6.2"
   },
   "devDependencies": {
     "@types/argparse": "^2.0.14",
-    "@types/glob": "^8.1.0",
-    "@types/node": "^20.9.3",
-    "prettier": "^2.8.8",
-    "typescript": "^5.3.2"
+    "@types/node": "^20.10.5",
+    "prettier": "^3.1.1",
+    "typescript": "^5.3.3"
   },
   "bin": {
     "soos-sbom": "bin/index.js"
-  },
-  "author": "SOOS",
-  "license": "MIT"
+  }
 }
