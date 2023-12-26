@@ -8,17 +8,19 @@ import {
 } from "@soos-io/api-client";
 import {
   obfuscateProperties,
-  getAnalysisExitCode,
+  getAnalysisExitCodeWithMessage,
 } from "@soos-io/api-client/dist/utilities";
 import * as FileSystem from "fs";
 import * as Path from "path";
 import { exit } from "process";
-import AnalysisArgumentParser, { IBaseScanArguments } from "@soos-io/api-client/dist/services/AnalysisArgumentParser";
+import AnalysisArgumentParser, {
+  IBaseScanArguments,
+} from "@soos-io/api-client/dist/services/AnalysisArgumentParser";
 import { version } from "../package.json";
 import AnalysisService from "@soos-io/api-client/dist/services/AnalysisService";
 import { SOOS_SBOM_CONSTANTS } from "./constants";
 
-interface SOOSSBOMAnalysisArgs extends IBaseScanArguments{
+interface SOOSSBOMAnalysisArgs extends IBaseScanArguments {
   sbomPath: string;
 }
 
@@ -128,13 +130,9 @@ class SOOSSBOMAnalysis {
         scanType,
       });
 
-      const exitCode = getAnalysisExitCode(
-        scanStatus,
-        this.args.integrationName,
-        this.args.onFailure,
-      );
-      soosLogger.debug(`Exiting with code ${exitCode}`);
-      exit(exitCode);
+      const exitCodeWithMessage = getAnalysisExitCodeWithMessage(scanStatus, this.args.onFailure);
+      soosLogger.always(`${exitCodeWithMessage.message} - exit ${exitCodeWithMessage.exitCode}`);
+      exit(exitCodeWithMessage.exitCode);
     } catch (error) {
       if (projectHash && branchHash && analysisId) {
         await soosAnalysisService.updateScanStatus({
@@ -149,6 +147,7 @@ class SOOSSBOMAnalysis {
         });
       }
       soosLogger.error(error);
+      soosLogger.always(`${error} - exit 1`);
       exit(1);
     }
   }
@@ -189,12 +188,13 @@ class SOOSSBOMAnalysis {
           2,
         ),
       );
-      
+
       soosLogger.logLineSeparator();
       const soosSBOMAnalysis = new SOOSSBOMAnalysis(args);
       await soosSBOMAnalysis.runAnalysis();
     } catch (error) {
       soosLogger.error(`Error on createAndRun: ${error}`);
+      soosLogger.always(`Error on createAndRun: ${error} - exit 1`);
       exit(1);
     }
   }
