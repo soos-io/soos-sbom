@@ -82,6 +82,8 @@ class SOOSSBOMAnalysis {
                 },
               ],
         scanType,
+        toolName: undefined,
+        toolVersion: undefined,
       });
 
       projectHash = result.projectHash;
