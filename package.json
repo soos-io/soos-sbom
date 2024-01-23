@@ -34,8 +34,8 @@
   },
   "devDependencies": {
     "@types/argparse": "^2.0.14",
-    "@types/node": "^20.10.5",
-    "prettier": "^3.1.1",
+    "@types/node": "^20.11.5",
+    "prettier": "^3.2.4",
     "typescript": "^5.3.3"
   },
   "bin": {

@@ -1,0 +1,105 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.4",
+  "serialNumber": "urn:uuid:d01162e3-dadf-40cd-bbc8-6a5c1ec4e2f3",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2023-09-27T00:24:23Z",
+    "tools": [
+      {
+        "vendor": "SOOS",
+        "name": "SOOS SCA",
+        "version": "31.12.0.1",
+        "externalReferences": [
+          {
+            "url": "https://soos.io/",
+            "type": "website"
+          },
+          {
+            "url": "https://soos.io/terms-of-service",
+            "type": "license",
+            "comment": "SOOS is providing this SBOM for non-commercial use. By downloading an SBOM from SOOS, you agree to all applicable terms at https://soos.io/terms-of-service. If you are interested in commercial SBOM access please contact sales@soos.io"
+          }
+        ]
+      }
+    ],
+    "authors": [
+      {
+        "email": "support@soos.io"
+      }
+    ],
+    "component": {
+      "type": "application",
+      "author": "  (support@soos.io)",
+      "publisher": "SOOS",
+      "name": "graphql",
+      "description": "SOOS SCA scan against pkg:npm/graphql@16.8.1",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "fc511a27f8e66409eaad43c808737eed838a6c72640b71bb32c602267c155c4b"
+        }
+      ]
+    },
+    "licenses": [
+      {
+        "license": {
+          "id": "CC0-1.0"
+        }
+      }
+    ]
+  },
+  "components": [
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/graphql@16.8.1",
+      "supplier": {
+        "name": "graphql",
+        "url": [
+          "https://github.com/graphql/graphql-js"
+        ],
+        "contact": []
+      },
+      "name": "graphql",
+      "version": "16.8.1",
+      "hashes": [
+        {
+          "alg": "SHA-1",
+          "content": "1930a965bef1170603702acdb68aedd3f3cf6f07"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:npm/graphql@16.8.1",
+      "externalReferences": [
+        {
+          "url": "https://www.npmjs.com/package/graphql/v/16.8.1",
+          "type": "website"
+        }
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "pkg:npm/graphql@16.8.1",
+      "dependsOn": []
+    }
+  ],
+  "compositions": [
+    {
+      "aggregate": "complete",
+      "dependencies": [
+        "pkg:npm/graphql@16.8.1"
+      ]
+    },
+    {
+      "aggregate": "incomplete",
+      "dependencies": []
+    }
+  ]
+}
