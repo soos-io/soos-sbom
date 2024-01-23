@@ -28,13 +28,14 @@ class SOOSSBOMAnalysis {
   constructor(private args: SOOSSBOMAnalysisArgs) {}
 
   static parseArgs(): SOOSSBOMAnalysisArgs {
-    const analysisArgumentParser = AnalysisArgumentParser.create(ScanType.SBOM);
-
-    analysisArgumentParser.addBaseScanArguments(
+    const analysisArgumentParser = AnalysisArgumentParser.create(
       IntegrationName.SoosSbom,
       IntegrationType.Script,
+      ScanType.SBOM,
       version,
     );
+
+    analysisArgumentParser.addBaseScanArguments();
 
     analysisArgumentParser.argumentParser.add_argument("sbomPath", {
       help: "The SBOM File to scan, it could be the location of the file or the file itself. When location is specified only the first file found will be scanned.",
