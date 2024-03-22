@@ -1,6 +1,6 @@
 {
   "name": "@soos-io/soos-sbom",
-  "version": "0.1.13",
+  "version": "0.1.14",
   "description": "SOOS wrapper script to upload SBOMs.",
   "main": "bin/index.js",
   "scripts": {
@@ -14,12 +14,24 @@
     "format:fix": "prettier ./src --write",
     "typecheck": "tsc --noEmit",
     "check": "npm run format && npm run typecheck && npm outdated",
-    "patch-api-client": "npm version patch --no-git-tag-version && npm run setup:clean && npm install @soos-io/api-client@latest --save-exact && npm install && npm run check"
+    "patch": "npm version patch --no-git-tag-version",
+    "patch-api-client": "npm run patch && npm run setup:clean && npm install @soos-io/api-client@latest --save-exact && npm install && npm run check"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/soos-io/soos-sbom.git"
   },
+  "keywords": [
+    "@soos-io",
+    "sbom",
+    "soos api",
+    "vulnerabilities",
+    "licenses",
+    "governance",
+    "soos",
+    "open source",
+    "oss"
+  ],
   "author": "SOOS",
   "license": "MIT",
   "bugs": {
@@ -27,7 +39,7 @@
   },
   "homepage": "https://github.com/soos-io/soos-sbom#readme",
   "dependencies": {
-    "@soos-io/api-client": "0.2.44",
+    "@soos-io/api-client": "0.2.47",
     "argparse": "^2.0.1",
     "glob": "^10.3.10",
     "tslib": "^2.6.2"
