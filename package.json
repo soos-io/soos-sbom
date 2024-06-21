@@ -1,6 +1,6 @@
 {
   "name": "@soos-io/soos-sbom",
-  "version": "0.1.15",
+  "version": "0.1.16",
   "description": "SOOS wrapper script to upload SBOMs.",
   "main": "bin/index.js",
   "scripts": {
@@ -39,16 +39,16 @@
   },
   "homepage": "https://github.com/soos-io/soos-sbom#readme",
   "dependencies": {
-    "@soos-io/api-client": "0.2.48",
+    "@soos-io/api-client": "0.3.1",
     "argparse": "^2.0.1",
-    "glob": "^10.3.10",
-    "tslib": "^2.6.2"
+    "glob": "^10.4.2",
+    "tslib": "^2.6.3"
   },
   "devDependencies": {
     "@types/argparse": "^2.0.15",
-    "@types/node": "^20.11.28",
-    "prettier": "^3.2.4",
-    "typescript": "^5.4.2"
+    "@types/node": "^20.14.7",
+    "prettier": "^3.3.2",
+    "typescript": "^5.5.2"
   },
   "bin": {
     "soos-sbom": "bin/index.js"
