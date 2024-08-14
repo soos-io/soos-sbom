@@ -22,6 +22,7 @@ import { SOOS_SBOM_CONSTANTS } from "./constants";
 
 interface SOOSSBOMAnalysisArgs extends IBaseScanArguments {
   sbomPath: string;
+  sbomUploadBatchSize: number;
 }
 
 class SOOSSBOMAnalysis {
@@ -36,6 +37,12 @@ class SOOSSBOMAnalysis {
     );
 
     analysisArgumentParser.addBaseScanArguments();
+
+    analysisArgumentParser.argumentParser.add_argument("--sbomUploadBatchSize", {
+      help: "The number of SBOMs to upload in a single request. Must be between 1 and 50.",
+      required: false,
+      default: 10,
+    });
 
     analysisArgumentParser.argumentParser.add_argument("sbomPath", {
       help: "The SBOM File to scan, it could be the location of the file or the file itself. When location is specified only the first file found will be scanned.",
@@ -54,7 +61,7 @@ class SOOSSBOMAnalysis {
     let analysisId: string | undefined;
     let scanStatusUrl: string | undefined;
 
-    const sbomFilePath = await this.findSbomFilePath();
+    const sbomFilePaths = await this.findSbomFilePath();
 
     try {
       const result = await soosAnalysisService.setupScan({
@@ -96,26 +103,38 @@ class SOOSSBOMAnalysis {
 
       soosLogger.info("Uploading SBOM File...");
 
-      const formData = await soosAnalysisService.getAnalysisFilesAsFormData(
-        [sbomFilePath],
-        this.args.sbomPath,
-      );
+      const batchSize =
+        this.args.sbomUploadBatchSize < 1
+          ? 1
+          : this.args.sbomUploadBatchSize > 50
+            ? 50
+            : this.args.sbomUploadBatchSize;
 
-      const manifestUploadResponse =
-        await soosAnalysisService.analysisApiClient.uploadManifestFiles({
-          clientId: this.args.clientId,
-          projectHash,
-          branchHash,
-          analysisId,
-          manifestFiles: formData,
-          hasMoreThanMaximumManifests: false,
-        });
+      for (let i = 0; i < sbomFilePaths.length; i += batchSize) {
+        const sbomFilePathsBatch = sbomFilePaths.slice(i, i + batchSize);
+        const formData = await soosAnalysisService.getAnalysisFilesAsFormData(
+          sbomFilePathsBatch,
+          this.args.sbomPath,
+        );
 
-      soosLogger.info(
-        ` SBOM Files: \n`,
-        `  ${manifestUploadResponse.message} \n`,
-        manifestUploadResponse.manifests?.map((m) => `  ${m.name}: ${m.statusMessage}`).join("\n"),
-      );
+        const manifestUploadResponse =
+          await soosAnalysisService.analysisApiClient.uploadManifestFiles({
+            clientId: this.args.clientId,
+            projectHash,
+            branchHash,
+            analysisId,
+            manifestFiles: formData,
+            hasMoreThanMaximumManifests: false,
+          });
+
+        soosLogger.info(
+          ` SBOM Files Uploaded: \n`,
+          `  ${manifestUploadResponse.message} \n`,
+          manifestUploadResponse.manifests
+            ?.map((m) => `  ${m.name}: ${m.statusMessage}`)
+            .join("\n"),
+        );
+      }
 
       soosLogger.logLineSeparator();
 
@@ -159,25 +178,25 @@ class SOOSSBOMAnalysis {
     }
   }
 
-  async findSbomFilePath(): Promise<string> {
+  async findSbomFilePath(): Promise<string[]> {
     const sbomPathStat = await FileSystem.statSync(this.args.sbomPath);
 
     if (sbomPathStat.isDirectory()) {
       const files = await FileSystem.promises.readdir(this.args.sbomPath);
-      const sbomFile = files.find((file) => SOOS_SBOM_CONSTANTS.FileRegex.test(file));
+      const sbomFiles = files.filter((file) => SOOS_SBOM_CONSTANTS.FileRegex.test(file));
 
-      if (!sbomFile) {
-        throw new Error("No SBOM file found in the directory.");
+      if (!sbomFiles || sbomFiles.length == 0) {
+        throw new Error("No SBOM files found in the directory.");
       }
 
-      return Path.join(this.args.sbomPath, sbomFile);
+      return sbomFiles.map((sbomFile) => Path.join(this.args.sbomPath, sbomFile));
     }
 
     if (!SOOS_SBOM_CONSTANTS.FileRegex.test(this.args.sbomPath)) {
       throw new Error("The file does not match the required SBOM pattern.");
     }
 
-    return this.args.sbomPath;
+    return [this.args.sbomPath];
   }
 
   static async createAndRun(): Promise<void> {
