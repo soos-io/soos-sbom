@@ -23,6 +23,7 @@ import { SOOS_SBOM_CONSTANTS } from "./constants";
 interface SOOSSBOMAnalysisArgs extends IBaseScanArguments {
   sbomPath: string;
   scanBatchSize: number;
+  skipWait: boolean;
 }
 
 interface ScanMeta {
@@ -58,6 +59,15 @@ class SOOSSBOMAnalysis {
       required: false,
       type: "int",
       default: 10,
+    });
+
+    analysisArgumentParser.argumentParser.add_argument("--skipWait", {
+      help: "Start the scans but don't wait for them to complete.",
+      default: false,
+      required: false,
+      type: (value: string) => {
+        return value === "true";
+      },
     });
 
     analysisArgumentParser.argumentParser.add_argument("sbomPath", {
@@ -104,6 +114,13 @@ class SOOSSBOMAnalysis {
       }
 
       const batchStartResults = await Promise.all(startPromises);
+
+      if (this.args.skipWait === true) {
+        soosLogger.logLineSeparator();
+        soosLogger.always(`Batch completed`);
+        soosLogger.logLineSeparator();
+        continue;
+      }
 
       soosLogger.logLineSeparator();
       soosLogger.always(`Waiting for batch to complete...`);
