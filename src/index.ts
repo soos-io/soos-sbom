@@ -91,6 +91,11 @@ class SOOSSBOMAnalysis {
     const sbomFilePaths = await this.findSbomFilePaths();
 
     for (let i = 0; i < sbomFilePaths.length; i += batchSize) {
+      if (i > 0) {
+        // trying to avoid rate limiting - larger rest between batches
+        await this.sleep(2000);
+      }
+
       const sbomFilePathsBatch = sbomFilePaths.slice(i, i + batchSize);
       const startPromises: Promise<ScanMeta>[] = [];
 
@@ -103,7 +108,8 @@ class SOOSSBOMAnalysis {
         const projectName = Path.parse(sbomFilePath)
           .name.replace(".spdx", "")
           .replace(".cdx", "")
-          .replace("_", " - ");
+          .replace("_", " - ")
+          .replace("%2F", "/");
 
         startPromises.push(this.startAnalysis(projectName, sbomFilePath));
 
@@ -114,10 +120,15 @@ class SOOSSBOMAnalysis {
       }
 
       const batchStartResults = await Promise.all(startPromises);
+      const successResults = batchStartResults.filter((r) => !r.exitCode);
+      const lastSuccessFile =
+        successResults.length > 0 ? successResults[successResults.length - 1] : null;
 
       if (this.args.skipWait === true) {
         soosLogger.logLineSeparator();
-        soosLogger.always(`Batch completed`);
+        soosLogger.always(
+          `Batch completed. Last processed file: ${lastSuccessFile?.projectName ?? "n/a"}`,
+        );
         soosLogger.logLineSeparator();
         continue;
       }
@@ -251,16 +262,20 @@ class SOOSSBOMAnalysis {
       };
     } catch (error) {
       if (projectHash && branchHash && analysisId) {
-        await soosAnalysisService.updateScanStatus({
-          clientId: this.args.clientId,
-          projectHash,
-          branchHash,
-          scanType,
-          analysisId: analysisId,
-          status: ScanStatus.Error,
-          message: "Error while performing scan.",
-          scanStatusUrl,
-        });
+        try {
+          await soosAnalysisService.updateScanStatus({
+            clientId: this.args.clientId,
+            projectHash,
+            branchHash,
+            scanType,
+            analysisId: analysisId,
+            status: ScanStatus.Error,
+            message: "Error while performing scan.",
+            scanStatusUrl,
+          });
+        } catch {
+          // no-op, just return original error below
+        }
       }
       return {
         projectName,
