@@ -106,10 +106,10 @@ class SOOSSBOMAnalysis {
       // start scans
       for (const sbomFilePath of sbomFilePathsBatch) {
         const projectName = Path.parse(sbomFilePath)
-          .name.replace(".spdx", "")
-          .replace(".cdx", "")
-          .replace("_", " - ")
-          .replace("%2F", "/");
+          .name.replaceAll(".spdx", "")
+          .replaceAll(".cdx", "")
+          .replaceAll("_", " - ")
+          .replaceAll("%2F", "/");
 
         startPromises.push(this.startAnalysis(projectName, sbomFilePath));
 
