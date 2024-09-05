@@ -38,5 +38,4 @@ Then run from the same terminal `node ./soos/node_modules/@soos-io/soos-sbom/bin
 | `--operatingEnvironment`|                                     | Set Operating environment for information purposes only.                                                                           |
 | `--otherOptions`        |                                     | Other Options to pass to syft.                                                                                                      |
 | `--projectName`         |                                        | Project Name - this is what will be displayed in the SOOS app.                                                                     |
-| `--verbose`             | `false`                                   | Enable verbose logging.                                                                                                             |
 | `sbomPath`              |                                        | The SBOM File to scan, it could be the location of the file or the file itself. When location is specified only the first file found will be scanned. |
