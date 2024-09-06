@@ -23,7 +23,9 @@ import { SOOS_SBOM_CONSTANTS } from "./constants";
 interface SOOSSBOMAnalysisArgs extends IBaseScanArguments {
   sbomPath: string;
   scanBatchSize: number;
+  maxFiles: number;
   skipWait: boolean;
+  useBranches: boolean;
 }
 
 interface ScanMeta {
@@ -61,8 +63,24 @@ class SOOSSBOMAnalysis {
       default: 10,
     });
 
+    analysisArgumentParser.argumentParser.add_argument("--maxFiles", {
+      help: "The maximum number of files to read.",
+      required: false,
+      type: "int",
+      default: 10000,
+    });
+
     analysisArgumentParser.argumentParser.add_argument("--skipWait", {
       help: "Start the scans but don't wait for them to complete.",
+      default: false,
+      required: false,
+      type: (value: string) => {
+        return value === "true";
+      },
+    });
+
+    analysisArgumentParser.argumentParser.add_argument("--useBranches", {
+      help: "Use branches for version (unique).",
       default: false,
       required: false,
       type: (value: string) => {
@@ -78,6 +96,16 @@ class SOOSSBOMAnalysis {
     return analysisArgumentParser.parseArguments();
   }
 
+  generateUniqueId = (length: number): string => {
+    const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    let result = "";
+    for (let i = 0; i < length; i++) {
+      const randomIndex = Math.floor(Math.random() * characters.length);
+      result += characters[randomIndex];
+    }
+    return result;
+  };
+
   async runAnalysisBatches(): Promise<void> {
     const batchSize =
       this.args.scanBatchSize < 1
@@ -90,7 +118,13 @@ class SOOSSBOMAnalysis {
 
     const sbomFilePaths = await this.findSbomFilePaths();
 
+    const maxFiles = Math.min(this.args.maxFiles, sbomFilePaths.length);
+    let fileCount = 0;
+
     for (let i = 0; i < sbomFilePaths.length; i += batchSize) {
+      if (fileCount > maxFiles) {
+        break;
+      }
       if (i > 0) {
         // trying to avoid rate limiting - larger rest between batches
         await this.sleep(2000);
@@ -105,15 +139,32 @@ class SOOSSBOMAnalysis {
 
       // start scans
       for (const sbomFilePath of sbomFilePathsBatch) {
-        const projectName = Path.parse(sbomFilePath)
-          .name.replaceAll(".spdx", "")
-          .replaceAll(".cdx", "")
-          .replaceAll("_", " - ")
-          .replaceAll("%2F", "/");
+        fileCount++;
+        if (fileCount > maxFiles) {
+          break;
+        }
 
-        startPromises.push(this.startAnalysis(projectName, sbomFilePath));
+        const parsedPath = Path.parse(sbomFilePath);
 
-        soosLogger.always(`${projectName}: Analysis Started`);
+        if (this.args.useBranches) {
+          // given c:\temp\NPM\Genie Columbia PET%2FCT Scanner_1.7.0.cdx.json
+          // project name: Genie Columbia PET/CT Scanner
+          // branch name: a12Bf8 1.7.0
+          const splitFilename = parsedPath.name.split("_");
+          const projectName = splitFilename[0].replaceAll("%2F", "/");
+          const branchName = `${this.generateUniqueId(6)} ${splitFilename[1].replaceAll(".spdx", "").replaceAll(".cdx", "")}`;
+
+          startPromises.push(this.startAnalysis(projectName, branchName, sbomFilePath));
+          soosLogger.always(`${projectName} / ${branchName} : Analysis Started`);
+        } else {
+          const projectName = parsedPath.name
+            .replaceAll(".spdx", "")
+            .replaceAll(".cdx", "")
+            .replaceAll("_", " - ")
+            .replaceAll("%2F", "/");
+          startPromises.push(this.startAnalysis(projectName, null, sbomFilePath));
+          soosLogger.always(`${projectName} : Analysis Started`);
+        }
 
         // trying to avoid rate limiting
         await this.sleep(500);
@@ -127,7 +178,7 @@ class SOOSSBOMAnalysis {
       if (this.args.skipWait === true) {
         soosLogger.logLineSeparator();
         soosLogger.always(
-          `Batch completed. Last processed file: ${lastSuccessFile?.projectName ?? "n/a"}`,
+          `Batch completed. Last processed file: ${lastSuccessFile?.projectName ?? "n/a"}; Total files: ${fileCount}`,
         );
         soosLogger.logLineSeparator();
         continue;
@@ -173,7 +224,11 @@ class SOOSSBOMAnalysis {
     soosLogger.always(`Total Runtime: ${hh}:${mm}:${ss}`);
   }
 
-  async startAnalysis(projectName: string, sbomFilePath: string): Promise<ScanMeta> {
+  async startAnalysis(
+    projectName: string,
+    branchName: string | null,
+    sbomFilePath: string,
+  ): Promise<ScanMeta> {
     const scanType = ScanType.SBOM;
     const soosAnalysisService = AnalysisService.create(this.args.apiKey, this.args.apiURL);
 
@@ -186,7 +241,7 @@ class SOOSSBOMAnalysis {
       const result = await soosAnalysisService.setupScan({
         clientId: this.args.clientId,
         projectName: projectName,
-        branchName: this.args.branchName,
+        branchName: branchName ?? this.args.branchName,
         commitHash: this.args.commitHash,
         buildVersion: this.args.buildVersion,
         buildUri: this.args.buildURI,
@@ -336,7 +391,7 @@ class SOOSSBOMAnalysis {
     const sbomPathStat = await FileSystem.statSync(this.args.sbomPath);
 
     if (sbomPathStat.isDirectory()) {
-      const files = await FileSystem.promises.readdir(this.args.sbomPath);
+      const files = await FileSystem.promises.readdir(this.args.sbomPath, { recursive: true });
       const sbomFiles = files.filter((file) => SOOS_SBOM_CONSTANTS.FileRegex.test(file));
 
       if (!sbomFiles || sbomFiles.length == 0) {
