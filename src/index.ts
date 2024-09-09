@@ -29,6 +29,7 @@ interface SOOSSBOMAnalysisArgs extends IBaseScanArguments {
 }
 
 interface ScanMeta {
+  sbomFilePath: string;
   projectName: string;
   scanType: ScanType;
   projectHash: string | null;
@@ -178,7 +179,7 @@ class SOOSSBOMAnalysis {
       if (this.args.skipWait === true) {
         soosLogger.logLineSeparator();
         soosLogger.always(
-          `Batch completed. Last processed file: ${lastSuccessFile?.projectName ?? "n/a"}; Total files: ${fileCount}`,
+          `Batch completed. Last processed file: ${lastSuccessFile?.sbomFilePath ?? "n/a"}; Total files: ${fileCount}`,
         );
         soosLogger.logLineSeparator();
         continue;
@@ -305,6 +306,7 @@ class SOOSSBOMAnalysis {
       });
 
       return {
+        sbomFilePath,
         projectName,
         scanType,
         projectHash,
@@ -316,6 +318,7 @@ class SOOSSBOMAnalysis {
         message: null,
       };
     } catch (error) {
+      soosLogger.always(`${projectName}: Failed - {sbomFilePath}`);
       if (projectHash && branchHash && analysisId) {
         try {
           await soosAnalysisService.updateScanStatus({
@@ -333,6 +336,7 @@ class SOOSSBOMAnalysis {
         }
       }
       return {
+        sbomFilePath,
         projectName,
         scanType,
         projectHash: projectHash ?? null,
