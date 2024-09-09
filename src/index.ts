@@ -22,12 +22,32 @@ import { SOOS_SBOM_CONSTANTS } from "./constants";
 
 interface SOOSSBOMAnalysisArgs extends IBaseScanArguments {
   sbomPath: string;
+  scanBatchSize: number;
+  maxFiles: number;
+  skipWait: boolean;
+  useBranches: boolean;
+}
+
+interface ScanMeta {
+  sbomFilePath: string;
+  projectName: string;
+  scanType: ScanType;
+  projectHash: string | null;
+  branchHash: string | null;
+  analysisId: string | null;
+  scanStatusUrl: string | null;
+  scanUrl: string | null;
+  exitCode: number | null;
+  message: string | null;
 }
 
 class SOOSSBOMAnalysis {
   constructor(private args: SOOSSBOMAnalysisArgs) {}
 
   static parseArgs(): SOOSSBOMAnalysisArgs {
+    // project name is set based on filename below
+    process.argv.push("--projectName=NOT_USED");
+
     const analysisArgumentParser = AnalysisArgumentParser.create(
       IntegrationName.SoosSbom,
       IntegrationType.Script,
@@ -37,6 +57,38 @@ class SOOSSBOMAnalysis {
 
     analysisArgumentParser.addBaseScanArguments();
 
+    analysisArgumentParser.argumentParser.add_argument("--scanBatchSize", {
+      help: "The number of parallel scans to run. Must be between 1 and 100.",
+      required: false,
+      type: "int",
+      default: 10,
+    });
+
+    analysisArgumentParser.argumentParser.add_argument("--maxFiles", {
+      help: "The maximum number of files to read.",
+      required: false,
+      type: "int",
+      default: 10000,
+    });
+
+    analysisArgumentParser.argumentParser.add_argument("--skipWait", {
+      help: "Start the scans but don't wait for them to complete.",
+      default: false,
+      required: false,
+      type: (value: string) => {
+        return value === "true";
+      },
+    });
+
+    analysisArgumentParser.argumentParser.add_argument("--useBranches", {
+      help: "Use branches for version (unique).",
+      default: false,
+      required: false,
+      type: (value: string) => {
+        return value === "true";
+      },
+    });
+
     analysisArgumentParser.argumentParser.add_argument("sbomPath", {
       help: "The SBOM File to scan, it could be the location of the file or the file itself. When location is specified only the first file found will be scanned.",
     });
@@ -45,7 +97,139 @@ class SOOSSBOMAnalysis {
     return analysisArgumentParser.parseArguments();
   }
 
-  async runAnalysis(): Promise<void> {
+  generateUniqueId = (length: number): string => {
+    const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    let result = "";
+    for (let i = 0; i < length; i++) {
+      const randomIndex = Math.floor(Math.random() * characters.length);
+      result += characters[randomIndex];
+    }
+    return result;
+  };
+
+  async runAnalysisBatches(): Promise<void> {
+    const batchSize =
+      this.args.scanBatchSize < 1
+        ? 1
+        : this.args.scanBatchSize > 100
+          ? 100
+          : this.args.scanBatchSize;
+
+    const startTime = Date.now();
+
+    const sbomFilePaths = await this.findSbomFilePaths();
+
+    const maxFiles = Math.min(this.args.maxFiles, sbomFilePaths.length);
+    let fileCount = 0;
+
+    for (let i = 0; i < sbomFilePaths.length; i += batchSize) {
+      if (fileCount > maxFiles) {
+        break;
+      }
+      if (i > 0) {
+        // trying to avoid rate limiting - larger rest between batches
+        await this.sleep(2000);
+      }
+
+      const sbomFilePathsBatch = sbomFilePaths.slice(i, i + batchSize);
+      const startPromises: Promise<ScanMeta>[] = [];
+
+      soosLogger.logLineSeparator();
+      soosLogger.always(`Starting batch (size = ${sbomFilePathsBatch.length})...`);
+      soosLogger.logLineSeparator();
+
+      // start scans
+      for (const sbomFilePath of sbomFilePathsBatch) {
+        fileCount++;
+        if (fileCount > maxFiles) {
+          break;
+        }
+
+        const parsedPath = Path.parse(sbomFilePath);
+
+        if (this.args.useBranches) {
+          // given c:\temp\NPM\Genie Columbia PET%2FCT Scanner_1.7.0.cdx.json
+          // project name: Genie Columbia PET/CT Scanner
+          // branch name: a12Bf8 1.7.0
+          const splitFilename = parsedPath.name.split("_");
+          const projectName = splitFilename[0].replaceAll("%2F", "/");
+          const branchName = `${this.generateUniqueId(6)} ${splitFilename[1].replaceAll(".spdx", "").replaceAll(".cdx", "")}`;
+
+          startPromises.push(this.startAnalysis(projectName, branchName, sbomFilePath));
+          soosLogger.always(`${projectName} / ${branchName} : Analysis Started`);
+        } else {
+          const projectName = parsedPath.name
+            .replaceAll(".spdx", "")
+            .replaceAll(".cdx", "")
+            .replaceAll("_", " - ")
+            .replaceAll("%2F", "/");
+          startPromises.push(this.startAnalysis(projectName, null, sbomFilePath));
+          soosLogger.always(`${projectName} : Analysis Started`);
+        }
+
+        // trying to avoid rate limiting
+        await this.sleep(500);
+      }
+
+      const batchStartResults = await Promise.all(startPromises);
+      const successResults = batchStartResults.filter((r) => !r.exitCode);
+      const lastSuccessFile =
+        successResults.length > 0 ? successResults[successResults.length - 1] : null;
+
+      if (this.args.skipWait === true) {
+        soosLogger.logLineSeparator();
+        soosLogger.always(
+          `Batch completed. Last processed file: ${lastSuccessFile?.sbomFilePath ?? "n/a"}; Total files: ${fileCount}`,
+        );
+        soosLogger.logLineSeparator();
+        continue;
+      }
+
+      soosLogger.logLineSeparator();
+      soosLogger.always(`Waiting for batch to complete...`);
+      soosLogger.logLineSeparator();
+
+      const completePromises: Promise<ScanMeta>[] = [];
+
+      // complete scans (don't poll status in parallel)
+      for (const startResult of batchStartResults) {
+        if (
+          startResult.exitCode !== null ||
+          startResult.scanStatusUrl === null ||
+          startResult.scanUrl === null
+        ) {
+          soosLogger.logLineSeparator();
+          soosLogger.always(
+            `${startResult.projectName}: ${startResult.message ?? "n/a"} (${startResult.exitCode ?? "n/a"})`,
+          );
+          soosLogger.logLineSeparator();
+          continue;
+        }
+
+        completePromises.push(this.completeAnalysis(startResult));
+
+        // trying to avoid rate limiting
+        await this.sleep(500);
+      }
+
+      await Promise.all(completePromises);
+
+      soosLogger.always(`Batch completed`);
+      soosLogger.logLineSeparator();
+    }
+
+    const ticks = (Date.now() - startTime) / 1000;
+    const hh = Math.floor(ticks / 3600);
+    const mm = Math.floor((ticks % 3600) / 60);
+    const ss = ticks % 60;
+    soosLogger.always(`Total Runtime: ${hh}:${mm}:${ss}`);
+  }
+
+  async startAnalysis(
+    projectName: string,
+    branchName: string | null,
+    sbomFilePath: string,
+  ): Promise<ScanMeta> {
     const scanType = ScanType.SBOM;
     const soosAnalysisService = AnalysisService.create(this.args.apiKey, this.args.apiURL);
 
@@ -54,13 +238,11 @@ class SOOSSBOMAnalysis {
     let analysisId: string | undefined;
     let scanStatusUrl: string | undefined;
 
-    const sbomFilePath = await this.findSbomFilePath();
-
     try {
       const result = await soosAnalysisService.setupScan({
         clientId: this.args.clientId,
-        projectName: this.args.projectName,
-        branchName: this.args.branchName,
+        projectName: projectName,
+        branchName: branchName ?? this.args.branchName,
         commitHash: this.args.commitHash,
         buildVersion: this.args.buildVersion,
         buildUri: this.args.buildURI,
@@ -92,9 +274,7 @@ class SOOSSBOMAnalysis {
       analysisId = result.analysisId;
       scanStatusUrl = result.scanStatusUrl;
 
-      soosLogger.logLineSeparator();
-
-      soosLogger.info("Uploading SBOM File...");
+      soosLogger.debug("Uploading SBOM File...");
 
       const formData = await soosAnalysisService.getAnalysisFilesAsFormData(
         [sbomFilePath],
@@ -111,13 +291,11 @@ class SOOSSBOMAnalysis {
           hasMoreThanMaximumManifests: false,
         });
 
-      soosLogger.info(
+      soosLogger.debug(
         ` SBOM Files: \n`,
         `  ${manifestUploadResponse.message} \n`,
         manifestUploadResponse.manifests?.map((m) => `  ${m.name}: ${m.statusMessage}`).join("\n"),
       );
-
-      soosLogger.logLineSeparator();
 
       await soosAnalysisService.startScan({
         clientId: this.args.clientId,
@@ -127,10 +305,59 @@ class SOOSSBOMAnalysis {
         scanUrl: result.scanUrl,
       });
 
-      const scanStatus = await soosAnalysisService.waitForScanToFinish({
+      return {
+        sbomFilePath,
+        projectName,
+        scanType,
+        projectHash,
+        branchHash,
+        analysisId,
         scanStatusUrl: result.scanStatusUrl,
         scanUrl: result.scanUrl,
+        exitCode: null,
+        message: null,
+      };
+    } catch (error) {
+      soosLogger.always(`${projectName}: Failed - ${sbomFilePath}`);
+      if (projectHash && branchHash && analysisId) {
+        try {
+          await soosAnalysisService.updateScanStatus({
+            clientId: this.args.clientId,
+            projectHash,
+            branchHash,
+            scanType,
+            analysisId: analysisId,
+            status: ScanStatus.Error,
+            message: "Error while performing scan.",
+            scanStatusUrl,
+          });
+        } catch {
+          // no-op, just return original error below
+        }
+      }
+      return {
+        sbomFilePath,
+        projectName,
         scanType,
+        projectHash: projectHash ?? null,
+        branchHash: branchHash ?? null,
+        analysisId: analysisId ?? null,
+        scanStatusUrl: null,
+        scanUrl: null,
+        exitCode: 1,
+        message: `${error}`,
+      };
+    }
+  }
+
+  async completeAnalysis(scanMeta: ScanMeta): Promise<ScanMeta> {
+    const soosAnalysisService = AnalysisService.create(this.args.apiKey, this.args.apiURL);
+
+    try {
+      const scanStatus = await soosAnalysisService.waitForScanToFinish({
+        scanStatusUrl: scanMeta.scanStatusUrl ?? "",
+        scanUrl: scanMeta.scanUrl ?? "",
+        scanType: scanMeta.scanType,
       });
 
       const exitCodeWithMessage = getAnalysisExitCodeWithMessage(
@@ -138,51 +365,55 @@ class SOOSSBOMAnalysis {
         this.args.integrationName,
         this.args.onFailure,
       );
-      soosLogger.always(`${exitCodeWithMessage.message} - exit ${exitCodeWithMessage.exitCode}`);
-      exit(exitCodeWithMessage.exitCode);
+      return {
+        ...scanMeta,
+        exitCode: exitCodeWithMessage.exitCode,
+        message: exitCodeWithMessage.message,
+      };
     } catch (error) {
-      if (projectHash && branchHash && analysisId) {
+      if (scanMeta.projectHash && scanMeta.branchHash && scanMeta.analysisId) {
         await soosAnalysisService.updateScanStatus({
           clientId: this.args.clientId,
-          projectHash,
-          branchHash,
-          scanType,
-          analysisId: analysisId,
+          projectHash: scanMeta.projectHash,
+          branchHash: scanMeta.branchHash,
+          scanType: scanMeta.scanType,
+          analysisId: scanMeta.analysisId,
           status: ScanStatus.Error,
           message: "Error while performing scan.",
-          scanStatusUrl,
+          scanStatusUrl: scanMeta.scanStatusUrl!,
         });
       }
-      soosLogger.error(error);
-      soosLogger.always(`${error} - exit 1`);
-      exit(1);
+      return {
+        ...scanMeta,
+        exitCode: 1,
+        message: `${error}`,
+      };
     }
   }
 
-  async findSbomFilePath(): Promise<string> {
+  async findSbomFilePaths(): Promise<string[]> {
     const sbomPathStat = await FileSystem.statSync(this.args.sbomPath);
 
     if (sbomPathStat.isDirectory()) {
-      const files = await FileSystem.promises.readdir(this.args.sbomPath);
-      const sbomFile = files.find((file) => SOOS_SBOM_CONSTANTS.FileRegex.test(file));
+      const files = await FileSystem.promises.readdir(this.args.sbomPath, { recursive: true });
+      const sbomFiles = files.filter((file) => SOOS_SBOM_CONSTANTS.FileRegex.test(file));
 
-      if (!sbomFile) {
-        throw new Error("No SBOM file found in the directory.");
+      if (!sbomFiles || sbomFiles.length == 0) {
+        throw new Error("No SBOM files found in the directory.");
       }
 
-      return Path.join(this.args.sbomPath, sbomFile);
+      return sbomFiles.map((sbomFile) => Path.join(this.args.sbomPath, sbomFile));
     }
 
     if (!SOOS_SBOM_CONSTANTS.FileRegex.test(this.args.sbomPath)) {
       throw new Error("The file does not match the required SBOM pattern.");
     }
 
-    return this.args.sbomPath;
+    return [this.args.sbomPath];
   }
 
   static async createAndRun(): Promise<void> {
     soosLogger.info("Starting SOOS SBOM Analysis");
-    soosLogger.logLineSeparator();
     try {
       const args = this.parseArgs();
       soosLogger.setMinLogLevel(args.logLevel);
@@ -195,14 +426,17 @@ class SOOSSBOMAnalysis {
         ),
       );
 
-      soosLogger.logLineSeparator();
       const soosSBOMAnalysis = new SOOSSBOMAnalysis(args);
-      await soosSBOMAnalysis.runAnalysis();
+      await soosSBOMAnalysis.runAnalysisBatches();
     } catch (error) {
       soosLogger.error(`Error on createAndRun: ${error}`);
       soosLogger.always(`Error on createAndRun: ${error} - exit 1`);
       exit(1);
     }
+  }
+
+  sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 
