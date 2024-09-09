@@ -318,7 +318,7 @@ class SOOSSBOMAnalysis {
         message: null,
       };
     } catch (error) {
-      soosLogger.always(`${projectName}: Failed - {sbomFilePath}`);
+      soosLogger.always(`${projectName}: Failed - ${sbomFilePath}`);
       if (projectHash && branchHash && analysisId) {
         try {
           await soosAnalysisService.updateScanStatus({
