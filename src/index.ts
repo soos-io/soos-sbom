@@ -22,6 +22,7 @@ import { SOOS_SBOM_CONSTANTS } from "./constants";
 
 interface SOOSSBOMAnalysisArgs extends IBaseScanArguments {
   sbomPath: string;
+  continueFromSbomPath: string | null;
   scanBatchSize: number;
   maxFiles: number;
   skipWait: boolean;
@@ -89,6 +90,13 @@ class SOOSSBOMAnalysis {
       },
     });
 
+    analysisArgumentParser.argumentParser.add_argument("--continueFromSbomPath", {
+      help: "Continue from this file. Only valid if sbomPath is a folder.",
+      default: null,
+      type: "str",
+      required: false,
+    });
+
     analysisArgumentParser.argumentParser.add_argument("sbomPath", {
       help: "The SBOM File to scan, it could be the location of the file or the file itself. When location is specified only the first file found will be scanned.",
     });
@@ -117,10 +125,24 @@ class SOOSSBOMAnalysis {
 
     const startTime = Date.now();
 
-    const sbomFilePaths = await this.findSbomFilePaths();
+    let sbomFilePaths = await this.findSbomFilePaths();
 
     const maxFiles = Math.min(this.args.maxFiles, sbomFilePaths.length);
     let fileCount = 0;
+
+    if (this.args.continueFromSbomPath !== null && this.args.continueFromSbomPath.length > 0) {
+      soosLogger.always(`Skipping files until: ${this.args.continueFromSbomPath}`);
+      let skipped = 0;
+      do {
+        const sbomFilePath = sbomFilePaths[0];
+        sbomFilePaths = sbomFilePaths.slice(1);
+        skipped++;
+        if (sbomFilePath.toUpperCase() === this.args.continueFromSbomPath.toUpperCase()) {
+          soosLogger.always(`Found (skipped ${skipped}): ${this.args.continueFromSbomPath}`);
+          break;
+        }
+      } while (true);
+    }
 
     for (let i = 0; i < sbomFilePaths.length; i += batchSize) {
       if (fileCount > maxFiles) {

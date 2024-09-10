@@ -4,6 +4,8 @@
   "description": "SOOS wrapper script to upload SBOMs.",
   "main": "bin/index.js",
   "scripts": {
+    "clean": "npm run build:clean",
+    "clean:all": "npm run clean && npm run setup:clean",
     "setup:install": "npm install",
     "setup:clean-install": "npm ci",
     "setup:update": "npx npm-check -u",
@@ -39,7 +41,7 @@
   },
   "homepage": "https://github.com/soos-io/soos-sbom#readme",
   "dependencies": {
-    "@soos-io/api-client": "1.0.3",
+    "@soos-io/api-client": "1.0.4",
     "argparse": "^2.0.1",
     "glob": "^11.0.0",
     "tslib": "^2.6.3"
