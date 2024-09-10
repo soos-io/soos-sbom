@@ -126,6 +126,7 @@ class SOOSSBOMAnalysis {
     const startTime = Date.now();
 
     let sbomFilePaths = await this.findSbomFilePaths();
+    sbomFilePaths.sort();
 
     const maxFiles = Math.min(this.args.maxFiles, sbomFilePaths.length);
     let fileCount = 0;
