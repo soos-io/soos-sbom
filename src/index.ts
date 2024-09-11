@@ -145,6 +145,9 @@ class SOOSSBOMAnalysis {
       } while (true);
     }
 
+    // only used when useBranches === true
+    const createdProjectNames: string[] = [];
+
     for (let i = 0; i < sbomFilePaths.length; i += batchSize) {
       if (fileCount > maxFiles) {
         break;
@@ -178,7 +181,20 @@ class SOOSSBOMAnalysis {
           const projectName = splitFilename[0].replaceAll("%2F", "/");
           const branchName = `${this.generateUniqueId(6)} ${splitFilename[1].replaceAll(".spdx", "").replaceAll(".cdx", "")}`;
 
-          startPromises.push(this.startAnalysis(projectName, branchName, sbomFilePath));
+          const startPromise = this.startAnalysis(projectName, branchName, sbomFilePath);
+
+          if (createdProjectNames.indexOf(projectName) >= 0) {
+            startPromises.push(startPromise);
+          } else {
+            soosLogger.always(`${projectName} : Waiting on first project scan`);
+            // on first project create, wait for requests to finish so there's no race conditions on create
+            const result = await startPromise;
+            startPromises.push(Promise.resolve(result));
+            if (result?.analysisId !== null && result.analysisId.length > 0) {
+              createdProjectNames.push(projectName);
+              soosLogger.always(`${projectName} : First project scan started`);
+            }
+          }
           soosLogger.always(`${projectName} / ${branchName} : Analysis Started`);
         } else {
           const projectName = parsedPath.name
@@ -341,7 +357,7 @@ class SOOSSBOMAnalysis {
         message: null,
       };
     } catch (error) {
-      soosLogger.always(`${projectName}: Failed - ${sbomFilePath}`);
+      soosLogger.always(`${projectName}: Failed - ${sbomFilePath} - ${JSON.stringify(error)}`);
       if (projectHash && branchHash && analysisId) {
         try {
           await soosAnalysisService.updateScanStatus({
