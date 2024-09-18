@@ -8,7 +8,7 @@ import {
 } from "@soos-io/api-client";
 import {
   obfuscateProperties,
-  getAnalysisExitCodeWithMessage,
+  getAnalysisExitCodeWithMessage, StringUtilities
 } from "@soos-io/api-client/dist/utilities";
 import * as FileSystem from "fs";
 import * as Path from "path";
@@ -22,7 +22,6 @@ import { SOOS_SBOM_CONSTANTS } from "./constants";
 
 interface SOOSSBOMAnalysisArgs extends IBaseScanArguments {
   sbomPath: string;
-  sbomUploadBatchSize: number;
 }
 
 class SOOSSBOMAnalysis {
@@ -37,13 +36,6 @@ class SOOSSBOMAnalysis {
     );
 
     analysisArgumentParser.addBaseScanArguments();
-
-    analysisArgumentParser.argumentParser.add_argument("--sbomUploadBatchSize", {
-      help: "The number of SBOMs to upload in a single request. Must be between 1 and 50.",
-      required: false,
-      type: "int",
-      default: 10,
-    });
 
     analysisArgumentParser.argumentParser.add_argument("sbomPath", {
       help: "The SBOM File to scan, it could be the location of the file or the file itself. When location is specified only the first file found will be scanned.",
@@ -62,7 +54,25 @@ class SOOSSBOMAnalysis {
     let analysisId: string | undefined;
     let scanStatusUrl: string | undefined;
 
-    const sbomFilePaths = await this.findSbomFilePaths();
+    let sbomFilePaths = await this.findSbomFilePaths();
+
+    const hasMoreThanMaximumManifests =
+      sbomFilePaths.length > SOOS_SBOM_CONSTANTS.MaxSbomsPerScan;
+    if (hasMoreThanMaximumManifests) {
+      const filesToSkip = sbomFilePaths.slice(SOOS_SBOM_CONSTANTS.MaxSbomsPerScan);
+      sbomFilePaths = sbomFilePaths.slice(0, SOOS_SBOM_CONSTANTS.MaxSbomsPerScan);
+      const filesDetectedString = StringUtilities.pluralizeTemplate(
+        sbomFilePaths.length,
+        "file was",
+        "files were",
+      );
+      const filesSkippedString = StringUtilities.pluralizeTemplate(filesToSkip.length, "file");
+      soosLogger.info(
+        `The maximum number of SBOMs per scan is ${SOOS_SBOM_CONSTANTS.MaxSbomsPerScan}. ${filesDetectedString} detected, and ${filesSkippedString} will be not be uploaded. \n`,
+        `The following SBOMs will not be included in the scan: \n`,
+        filesToSkip.map((file) => `  "${Path.parse(file).base}": "${file}"`).join("\n"),
+      );
+    }
 
     try {
       const result = await soosAnalysisService.setupScan({
@@ -104,15 +114,8 @@ class SOOSSBOMAnalysis {
 
       soosLogger.info("Uploading SBOM File(s)...");
 
-      const batchSize =
-        this.args.sbomUploadBatchSize < 1
-          ? 1
-          : this.args.sbomUploadBatchSize > 50
-            ? 50
-            : this.args.sbomUploadBatchSize;
-
-      for (let i = 0; i < sbomFilePaths.length; i += batchSize) {
-        const sbomFilePathsBatch = sbomFilePaths.slice(i, i + batchSize);
+      for (let i = 0; i < sbomFilePaths.length; i += SOOS_SBOM_CONSTANTS.UploadBatchSize) {
+        const sbomFilePathsBatch = sbomFilePaths.slice(i, i + SOOS_SBOM_CONSTANTS.UploadBatchSize);
         const formData = await soosAnalysisService.getAnalysisFilesAsFormData(
           sbomFilePathsBatch,
           this.args.sbomPath,
@@ -125,7 +128,7 @@ class SOOSSBOMAnalysis {
             branchHash,
             analysisId,
             manifestFiles: formData,
-            hasMoreThanMaximumManifests: false,
+            hasMoreThanMaximumManifests,
           });
 
         soosLogger.info(
