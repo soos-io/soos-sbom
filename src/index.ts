@@ -8,7 +8,8 @@ import {
 } from "@soos-io/api-client";
 import {
   obfuscateProperties,
-  getAnalysisExitCodeWithMessage, StringUtilities
+  getAnalysisExitCodeWithMessage,
+  StringUtilities,
 } from "@soos-io/api-client/dist/utilities";
 import * as FileSystem from "fs";
 import * as Path from "path";
