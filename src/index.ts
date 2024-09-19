@@ -57,8 +57,7 @@ class SOOSSBOMAnalysis {
 
     let sbomFilePaths = await this.findSbomFilePaths();
 
-    const hasMoreThanMaximumManifests =
-      sbomFilePaths.length > SOOS_SBOM_CONSTANTS.MaxSbomsPerScan;
+    const hasMoreThanMaximumManifests = sbomFilePaths.length > SOOS_SBOM_CONSTANTS.MaxSbomsPerScan;
     if (hasMoreThanMaximumManifests) {
       const filesToSkip = sbomFilePaths.slice(SOOS_SBOM_CONSTANTS.MaxSbomsPerScan);
       sbomFilePaths = sbomFilePaths.slice(0, SOOS_SBOM_CONSTANTS.MaxSbomsPerScan);
