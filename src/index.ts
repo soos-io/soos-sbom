@@ -9,6 +9,7 @@ import {
 import {
   obfuscateProperties,
   getAnalysisExitCodeWithMessage,
+  StringUtilities,
 } from "@soos-io/api-client/dist/utilities";
 import * as FileSystem from "fs";
 import * as Path from "path";
@@ -54,7 +55,24 @@ class SOOSSBOMAnalysis {
     let analysisId: string | undefined;
     let scanStatusUrl: string | undefined;
 
-    const sbomFilePath = await this.findSbomFilePath();
+    let sbomFilePaths = await this.findSbomFilePaths();
+
+    const hasMoreThanMaximumManifests = sbomFilePaths.length > SOOS_SBOM_CONSTANTS.MaxSbomsPerScan;
+    if (hasMoreThanMaximumManifests) {
+      const filesToSkip = sbomFilePaths.slice(SOOS_SBOM_CONSTANTS.MaxSbomsPerScan);
+      sbomFilePaths = sbomFilePaths.slice(0, SOOS_SBOM_CONSTANTS.MaxSbomsPerScan);
+      const filesDetectedString = StringUtilities.pluralizeTemplate(
+        sbomFilePaths.length,
+        "file was",
+        "files were",
+      );
+      const filesSkippedString = StringUtilities.pluralizeTemplate(filesToSkip.length, "file");
+      soosLogger.info(
+        `The maximum number of SBOMs per scan is ${SOOS_SBOM_CONSTANTS.MaxSbomsPerScan}. ${filesDetectedString} detected, and ${filesSkippedString} will be not be uploaded. \n`,
+        `The following SBOMs will not be included in the scan: \n`,
+        filesToSkip.map((file) => `  "${Path.parse(file).base}": "${file}"`).join("\n"),
+      );
+    }
 
     try {
       const result = await soosAnalysisService.setupScan({
@@ -94,28 +112,33 @@ class SOOSSBOMAnalysis {
 
       soosLogger.logLineSeparator();
 
-      soosLogger.info("Uploading SBOM File...");
+      soosLogger.info("Uploading SBOM File(s)...");
 
-      const formData = await soosAnalysisService.getAnalysisFilesAsFormData(
-        [sbomFilePath],
-        this.args.sbomPath,
-      );
+      for (let i = 0; i < sbomFilePaths.length; i += SOOS_SBOM_CONSTANTS.UploadBatchSize) {
+        const sbomFilePathsBatch = sbomFilePaths.slice(i, i + SOOS_SBOM_CONSTANTS.UploadBatchSize);
+        const formData = await soosAnalysisService.getAnalysisFilesAsFormData(
+          sbomFilePathsBatch,
+          this.args.sbomPath,
+        );
 
-      const manifestUploadResponse =
-        await soosAnalysisService.analysisApiClient.uploadManifestFiles({
-          clientId: this.args.clientId,
-          projectHash,
-          branchHash,
-          analysisId,
-          manifestFiles: formData,
-          hasMoreThanMaximumManifests: false,
-        });
+        const manifestUploadResponse =
+          await soosAnalysisService.analysisApiClient.uploadManifestFiles({
+            clientId: this.args.clientId,
+            projectHash,
+            branchHash,
+            analysisId,
+            manifestFiles: formData,
+            hasMoreThanMaximumManifests,
+          });
 
-      soosLogger.info(
-        ` SBOM Files: \n`,
-        `  ${manifestUploadResponse.message} \n`,
-        manifestUploadResponse.manifests?.map((m) => `  ${m.name}: ${m.statusMessage}`).join("\n"),
-      );
+        soosLogger.info(
+          ` SBOM Files: \n`,
+          `  ${manifestUploadResponse.message} \n`,
+          manifestUploadResponse.manifests
+            ?.map((m) => `  ${m.name}: ${m.statusMessage}`)
+            .join("\n"),
+        );
+      }
 
       soosLogger.logLineSeparator();
 
@@ -159,25 +182,25 @@ class SOOSSBOMAnalysis {
     }
   }
 
-  async findSbomFilePath(): Promise<string> {
+  async findSbomFilePaths(): Promise<string[]> {
     const sbomPathStat = await FileSystem.statSync(this.args.sbomPath);
 
     if (sbomPathStat.isDirectory()) {
       const files = await FileSystem.promises.readdir(this.args.sbomPath);
-      const sbomFile = files.find((file) => SOOS_SBOM_CONSTANTS.FileRegex.test(file));
+      const sbomFiles = files.filter((file) => SOOS_SBOM_CONSTANTS.FileRegex.test(file));
 
-      if (!sbomFile) {
-        throw new Error("No SBOM file found in the directory.");
+      if (!sbomFiles || sbomFiles.length == 0) {
+        throw new Error("No SBOM files found in the directory.");
       }
 
-      return Path.join(this.args.sbomPath, sbomFile);
+      return sbomFiles.map((sbomFile) => Path.join(this.args.sbomPath, sbomFile));
     }
 
     if (!SOOS_SBOM_CONSTANTS.FileRegex.test(this.args.sbomPath)) {
       throw new Error("The file does not match the required SBOM pattern.");
     }
 
-    return this.args.sbomPath;
+    return [this.args.sbomPath];
   }
 
   static async createAndRun(): Promise<void> {
