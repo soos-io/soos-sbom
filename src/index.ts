@@ -186,7 +186,7 @@ class SOOSSBOMAnalysis {
     const sbomPathStat = await FileSystem.statSync(this.args.sbomPath);
 
     if (sbomPathStat.isDirectory()) {
-      const files = await FileSystem.promises.readdir(this.args.sbomPath);
+      const files = await FileSystem.promises.readdir(this.args.sbomPath, { recursive: true });
       const sbomFiles = files.filter((file) => SOOS_SBOM_CONSTANTS.FileRegex.test(file));
 
       if (!sbomFiles || sbomFiles.length == 0) {
