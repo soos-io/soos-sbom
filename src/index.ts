@@ -60,7 +60,7 @@ class SOOSSBOMAnalysis {
     });
 
     analysisArgumentParser.argumentParser.add_argument("sbomPath", {
-      help: "The SBOM File to scan, it could be the location of the file or the file itself. When location is specified only the first file found will be scanned.",
+      help: "The SBOM file or folder to scan. When a folder is specified all SBOMs found in the folder and sub-folders will be scanned.",
     });
 
     soosLogger.info("Parsing arguments");
