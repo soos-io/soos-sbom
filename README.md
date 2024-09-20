@@ -40,4 +40,4 @@ Then run from the same terminal `node ./soos/node_modules/@soos-io/soos-sbom/bin
 | `--projectName`         |                                        | Project Name - this is what will be displayed in the SOOS app.                                                                     |
 | `--directoriesToExclude` | `**/node_modules/**, "**/bin/**", "**/obj/**", "**/lib/**` | Listing of directories or patterns to exclude from the search for SBOM files. eg: **bin/start/**, **/start/**                                         |
 | `--filesToExclude` |  | Listing of files or patterns patterns to exclude from the search for SBOM files. eg: **/int**.cdx.json/, **/internal.cdx.json                         |
-| `sbomPath`              |                                        | The SBOM File to scan, it could be the location of the file or the file itself. When location is specified only the first file found will be scanned. |
+| `sbomPath`              |                                        | The SBOM file or folder to scan. When a folder is specified all SBOMs found in the folder and sub-folders will be scanned. |
