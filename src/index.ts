@@ -20,8 +20,12 @@ import AnalysisArgumentParser, {
 import { version } from "../package.json";
 import AnalysisService from "@soos-io/api-client/dist/services/AnalysisService";
 import { SOOS_SBOM_CONSTANTS } from "./constants";
+import { removeDuplicates } from "./utilities";
+import * as Glob from "glob";
 
 interface SOOSSBOMAnalysisArgs extends IBaseScanArguments {
+  directoriesToExclude: Array<string>;
+  filesToExclude: Array<string>;
   sbomPath: string;
 }
 
@@ -37,6 +41,23 @@ class SOOSSBOMAnalysis {
     );
 
     analysisArgumentParser.addBaseScanArguments();
+
+    analysisArgumentParser.argumentParser.add_argument("--directoriesToExclude", {
+      help: "Listing of directories or patterns to exclude from the search for SBOM files. eg: **bin/start/**, **/start/**",
+      type: (value: string) => {
+        return removeDuplicates(value.split(",").map((pattern) => pattern.trim()));
+      },
+      default: SOOS_SBOM_CONSTANTS.DefaultDirectoriesToExclude,
+      required: false,
+    });
+
+    analysisArgumentParser.argumentParser.add_argument("--filesToExclude", {
+      help: "Listing of files or patterns patterns to exclude from the search for SBOM files. eg: **/int**.cdx.json/, **/internal.cdx.json",
+      type: (value: string) => {
+        return value.split(",").map((pattern) => pattern.trim());
+      },
+      required: false,
+    });
 
     analysisArgumentParser.argumentParser.add_argument("sbomPath", {
       help: "The SBOM File to scan, it could be the location of the file or the file itself. When location is specified only the first file found will be scanned.",
@@ -186,14 +207,20 @@ class SOOSSBOMAnalysis {
     const sbomPathStat = await FileSystem.statSync(this.args.sbomPath);
 
     if (sbomPathStat.isDirectory()) {
-      const files = await FileSystem.promises.readdir(this.args.sbomPath);
-      const sbomFiles = files.filter((file) => SOOS_SBOM_CONSTANTS.FileRegex.test(file));
+      const searchPattern =
+        this.args.sbomPath.endsWith("/") || this.args.sbomPath.endsWith("\\")
+          ? `${this.args.sbomPath}${SOOS_SBOM_CONSTANTS.FileSyncPattern}`
+          : `${this.args.sbomPath}/${SOOS_SBOM_CONSTANTS.FileSyncPattern}`;
+      const sbomFiles = Glob.sync(searchPattern, {
+        ignore: [...(this.args.filesToExclude || []), ...(this.args.directoriesToExclude || [])],
+        nocase: true,
+      });
 
       if (!sbomFiles || sbomFiles.length == 0) {
         throw new Error("No SBOM files found in the directory.");
       }
 
-      return sbomFiles.map((sbomFile) => Path.join(this.args.sbomPath, sbomFile));
+      return sbomFiles;
     }
 
     if (!SOOS_SBOM_CONSTANTS.FileRegex.test(this.args.sbomPath)) {
