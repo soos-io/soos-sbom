@@ -52,7 +52,7 @@ class SOOSSBOMAnalysis {
     });
 
     analysisArgumentParser.argumentParser.add_argument("--filesToExclude", {
-      help: "Listing of files or patterns patterns to exclude from the search for SBOM files. eg: **/req**.cdx.json/, **/requirements.cdx.json",
+      help: "Listing of files or patterns patterns to exclude from the search for SBOM files. eg: **/int**.cdx.json/, **/internal.cdx.json",
       type: (value: string) => {
         return value.split(",").map((pattern) => pattern.trim());
       },

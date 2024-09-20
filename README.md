@@ -24,18 +24,20 @@ Then run from the same terminal `node ./soos/node_modules/@soos-io/soos-sbom/bin
 ## Client Parameters
 
 
-| Argument                | Default                                   | Description                                                                                                                          |
-| ----------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `--apiKey`              |  | SOOS API Key - get yours from [SOOS Integration](https://app.soos.io/integrate/sbom). Uses `SOOS_API_KEY` env value if present.      |
-| `--branchName`          |                                     | The name of the branch from the SCM System.                                                                                         |
-| `--branchURI`           |                                     | The URI to the branch from the SCM System.                                                                                          |
-| `--buildURI`            |                                     | URI to CI build info.                                                                                                               |
-| `--buildVersion`        |                                     | Version of application build artifacts.                                                                                             |
-| `--clientId`            |  | SOOS Client ID - get yours from [SOOS Integration](https://app.soos.io/integrate/sbom). Uses `SOOS_API_CLIENT` env value if present.                                           |
-| `--commitHash`          |                                     | The commit hash value from the SCM System.                                                                                         |
-| `--logLevel`            | `INFO`                          | Minimum level to show logs: PASS, IGNORE, INFO, WARN, or FAIL.                                                                      |
-| `--onFailure`            | `continue_on_failure`                     | Action to perform when the scan fails. Options: fail_the_build, continue_on_failure.                                                 |
-| `--operatingEnvironment`|                                     | Set Operating environment for information purposes only.                                                                           |
-| `--otherOptions`        |                                     | Other Options to pass to syft.                                                                                                      |
-| `--projectName`         |                                        | Project Name - this is what will be displayed in the SOOS app.                                                                     |
+| Argument                | Default                                   | Description                                                                                                                                           |
+| ----------------------- | ----------------------------------------- |-------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `--apiKey`              |  | SOOS API Key - get yours from [SOOS Integration](https://app.soos.io/integrate/sbom). Uses `SOOS_API_KEY` env value if present.                       |
+| `--branchName`          |                                     | The name of the branch from the SCM System.                                                                                                           |
+| `--branchURI`           |                                     | The URI to the branch from the SCM System.                                                                                                            |
+| `--buildURI`            |                                     | URI to CI build info.                                                                                                                                 |
+| `--buildVersion`        |                                     | Version of application build artifacts.                                                                                                               |
+| `--clientId`            |  | SOOS Client ID - get yours from [SOOS Integration](https://app.soos.io/integrate/sbom). Uses `SOOS_API_CLIENT` env value if present.                  |
+| `--commitHash`          |                                     | The commit hash value from the SCM System.                                                                                                            |
+| `--logLevel`            | `INFO`                          | Minimum level to show logs: PASS, IGNORE, INFO, WARN, or FAIL.                                                                                        |
+| `--onFailure`            | `continue_on_failure`                     | Action to perform when the scan fails. Options: fail_the_build, continue_on_failure.                                                                  |
+| `--operatingEnvironment`|                                     | Set Operating environment for information purposes only.                                                                                              |
+| `--otherOptions`        |                                     | Other Options to pass to syft.                                                                                                                        |
+| `--projectName`         |                                        | Project Name - this is what will be displayed in the SOOS app.                                                                                        |
+| `--directoriesToExclude` | `**/node_modules/**, "**/bin/**", "**/obj/**", "**/lib/**` | Listing of directories or patterns to exclude from the search for SBOM files. eg: **bin/start/**, **/start/**                                         |
+| `--filesToExclude` |  | Listing of files or patterns patterns to exclude from the search for SBOM files. eg: **/int**.cdx.json/, **/internal.cdx.json                         |
 | `sbomPath`              |                                        | The SBOM File to scan, it could be the location of the file or the file itself. When location is specified only the first file found will be scanned. |
