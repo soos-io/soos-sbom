@@ -212,7 +212,11 @@ class SOOSSBOMAnalysis {
           ? `${this.args.sbomPath}${SOOS_SBOM_CONSTANTS.FileSyncPattern}`
           : `${this.args.sbomPath}/${SOOS_SBOM_CONSTANTS.FileSyncPattern}`;
       const sbomFiles = Glob.sync(searchPattern, {
-        ignore: [...(this.args.filesToExclude || []), ...(this.args.directoriesToExclude || [])],
+        ignore: [
+          ...(this.args.filesToExclude || []),
+          ...(this.args.directoriesToExclude || []),
+          SOOS_SBOM_CONSTANTS.SoosDirectoryToExclude,
+        ],
         nocase: true,
       });
 
