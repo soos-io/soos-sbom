@@ -10,6 +10,7 @@ import {
   obfuscateProperties,
   getAnalysisExitCodeWithMessage,
   StringUtilities,
+  isScanDone,
 } from "@soos-io/api-client/dist/utilities";
 import * as FileSystem from "fs";
 import * as Path from "path";
@@ -75,6 +76,7 @@ class SOOSSBOMAnalysis {
     let branchHash: string | undefined;
     let analysisId: string | undefined;
     let scanStatusUrl: string | undefined;
+    let scanStatus: ScanStatus | undefined;
 
     let sbomFilePaths = await this.findSbomFilePaths();
 
@@ -171,7 +173,7 @@ class SOOSSBOMAnalysis {
         scanUrl: result.scanUrl,
       });
 
-      const scanStatus = await soosAnalysisService.waitForScanToFinish({
+      scanStatus = await soosAnalysisService.waitForScanToFinish({
         scanStatusUrl: result.scanStatusUrl,
         scanUrl: result.scanUrl,
         scanType,
@@ -185,7 +187,7 @@ class SOOSSBOMAnalysis {
       soosLogger.always(`${exitCodeWithMessage.message} - exit ${exitCodeWithMessage.exitCode}`);
       exit(exitCodeWithMessage.exitCode);
     } catch (error) {
-      if (projectHash && branchHash && analysisId) {
+      if (projectHash && branchHash && analysisId && (!scanStatus || !isScanDone(scanStatus))) {
         await soosAnalysisService.updateScanStatus({
           clientId: this.args.clientId,
           projectHash,
