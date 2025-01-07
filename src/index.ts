@@ -28,7 +28,7 @@ interface SOOSSBOMAnalysisArgs extends IBaseScanArguments {
   directoriesToExclude: Array<string>;
   filesToExclude: Array<string>;
   sbomPath: string;
-  workingDirectory: string;
+  outputDirectory: string;
 }
 
 class SOOSSBOMAnalysis {
@@ -65,8 +65,8 @@ class SOOSSBOMAnalysis {
       help: "The SBOM file or folder to scan. When a folder is specified all SBOMs found in the folder and sub-folders will be scanned.",
     });
 
-    analysisArgumentParser.argumentParser.add_argument("--workingDirectory", {
-      help: "Absolute path where SOOS may write and read persistent files for the given build. eg Correct: /tmp/workspace/ | Incorrect: ./bin/start/",
+    analysisArgumentParser.argumentParser.add_argument("--outputDirectory", {
+      help: "Absolute path where SOOS will write exported reports and SBOMs. eg Correct: /out/sbom/ | Incorrect: ./out/sbom/",
       default: process.cwd(),
       required: false,
     });
@@ -202,7 +202,7 @@ class SOOSSBOMAnalysis {
           includeDependentProjects: false,
           includeOriginalSbom: false,
           includeVulnerabilities: false,
-          workingDirectory: this.args.workingDirectory,
+          workingDirectory: this.args.outputDirectory,
         });
       }
 
