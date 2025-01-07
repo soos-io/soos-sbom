@@ -1,6 +1,6 @@
 {
   "name": "@soos-io/soos-sbom",
-  "version": "1.0.10",
+  "version": "1.0.9",
   "description": "SOOS wrapper script to upload SBOMs.",
   "main": "bin/index.js",
   "scripts": {
