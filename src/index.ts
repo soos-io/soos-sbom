@@ -28,6 +28,7 @@ interface SOOSSBOMAnalysisArgs extends IBaseScanArguments {
   directoriesToExclude: Array<string>;
   filesToExclude: Array<string>;
   sbomPath: string;
+  outputDirectory: string;
 }
 
 class SOOSSBOMAnalysis {
@@ -62,6 +63,12 @@ class SOOSSBOMAnalysis {
 
     analysisArgumentParser.argumentParser.add_argument("sbomPath", {
       help: "The SBOM file or folder to scan. When a folder is specified all SBOMs found in the folder and sub-folders will be scanned.",
+    });
+
+    analysisArgumentParser.argumentParser.add_argument("--outputDirectory", {
+      help: "Absolute path where SOOS will write exported reports and SBOMs. eg Correct: /out/sbom/ | Incorrect: ./out/sbom/",
+      default: process.cwd(),
+      required: false,
     });
 
     soosLogger.info("Parsing arguments");
@@ -178,6 +185,26 @@ class SOOSSBOMAnalysis {
         scanUrl: result.scanUrl,
         scanType,
       });
+
+      if (
+        isScanDone(scanStatus) &&
+        this.args.exportFormat !== undefined &&
+        this.args.exportFileType !== undefined
+      ) {
+        await soosAnalysisService.generateFormattedOutput({
+          clientId: this.args.clientId,
+          projectHash: result.projectHash,
+          projectName: this.args.projectName,
+          branchHash: result.branchHash,
+          analysisId: result.analysisId,
+          format: this.args.exportFormat,
+          fileType: this.args.exportFileType,
+          includeDependentProjects: false,
+          includeOriginalSbom: false,
+          includeVulnerabilities: false,
+          workingDirectory: this.args.outputDirectory,
+        });
+      }
 
       const exitCodeWithMessage = getAnalysisExitCodeWithMessage(
         scanStatus,
