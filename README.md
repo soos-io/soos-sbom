@@ -33,10 +33,13 @@ Then run from the same terminal `node ./soos/node_modules/@soos-io/soos-sbom/bin
 | `--buildVersion`        |                                     | Version of application build artifacts.                                                                                             |
 | `--clientId`            |  | SOOS Client ID - get yours from [SOOS Integration](https://app.soos.io/integrate/sbom). Uses `SOOS_API_CLIENT` env value if present.                                           |
 | `--commitHash`          |                                     | The commit hash value from the SCM System.                                                                                         |
+| `--exportFormat`   |  | Write the scan result to this file format. Options: CsafVex, CycloneDx, Sarif, Spdx, SoosIssues, SoosLicenses, SoosPackages, SoosVulnerabilities |
+| `--exportFileType` |  | Write the scan result to this file type (when used with exportFormat). Options: Csv, Html, Json, Text, Xml                                       |
 | `--logLevel`            | `INFO`                          | Minimum level to show logs: PASS, IGNORE, INFO, WARN, or FAIL.                                                                      |
 | `--onFailure`            | `continue_on_failure`                     | Action to perform when the scan fails. Options: fail_the_build, continue_on_failure.                                                 |
 | `--operatingEnvironment`|                                     | Set Operating environment for information purposes only.                                                                           |
 | `--otherOptions`        |                                     | Other Options to pass to syft.                                                                                                      |
+| `--outputDirectory` |  | Export file destination. | 
 | `--projectName`         |                                        | Project Name - this is what will be displayed in the SOOS app.                                                                     |
 | `--directoriesToExclude` | `**/node_modules/**, "**/bin/**", "**/obj/**", "**/lib/**` | Listing of directories or patterns to exclude from the search for SBOM files. eg: **bin/start/**, **/start/**                                         |
 | `--filesToExclude` |  | Listing of files or patterns patterns to exclude from the search for SBOM files. eg: **/int**.cdx.json/, **/internal.cdx.json                         |
