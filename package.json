@@ -1,7 +1,7 @@
 {
   "name": "@soos-io/soos-sbom",
-  "version": "1.0.13",
-  "description": "SOOS wrapper script to upload SBOMs.",
+  "version": "1.0.14",
+  "description": "Upload your Software Bill of Materials (SBOM) to SOOS for vulnerability analysis, license matching and more. Register for a free trial today at https://app.soos.io/register",
   "main": "bin/index.js",
   "scripts": {
     "setup:install": "npm install",
@@ -12,6 +12,7 @@
     "build:clean": "npx rimraf build",
     "format": "prettier ./src --check",
     "format:fix": "prettier ./src --write",
+    "knip": "knip",
     "typecheck": "tsc --noEmit",
     "check": "npm run format && npm run typecheck && (npm outdated || exit 0)",
     "patch": "npm version patch --no-git-tag-version",
@@ -39,16 +40,16 @@
   },
   "homepage": "https://github.com/soos-io/soos-sbom#readme",
   "dependencies": {
-    "@soos-io/api-client": "1.1.8",
-    "@types/node": "^20.17.12",
+    "@soos-io/api-client": "1.1.9",
     "argparse": "^2.0.1",
     "glob": "^11.0.1",
     "tslib": "^2.6.3"
   },
   "devDependencies": {
     "@types/argparse": "^2.0.16",
-    "@types/node": "^20.16.5",
-    "prettier": "^3.4.2",
+    "@types/node": "^20.17.19",
+    "knip": "^5.44.1",
+    "prettier": "^3.5.1",
     "typescript": "^5.7.3"
   },
   "bin": {
