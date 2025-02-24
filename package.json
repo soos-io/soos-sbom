@@ -1,6 +1,6 @@
 {
   "name": "@soos-io/soos-sbom",
-  "version": "1.0.14",
+  "version": "1.0.15",
   "description": "Upload your Software Bill of Materials (SBOM) to SOOS for vulnerability analysis, license matching and more. Register for a free trial today at https://app.soos.io/register",
   "main": "bin/index.js",
   "scripts": {
@@ -12,9 +12,11 @@
     "build:clean": "npx rimraf build",
     "format": "prettier ./src --check",
     "format:fix": "prettier ./src --write",
+    "lint": "eslint --max-warnings 0",
+    "lint:fix": "eslint --max-warnings 0 --fix",
     "knip": "knip",
     "typecheck": "tsc --noEmit",
-    "check": "npm run format && npm run typecheck && (npm outdated || exit 0)",
+    "check": "npm run format && npm run lint && npm run typecheck && (npm outdated || exit 0)",
     "patch": "npm version patch --no-git-tag-version",
     "patch-api-client": "npm run patch && npm run setup:clean && npm install @soos-io/api-client@latest --save-exact && npm install && npm run check"
   },
@@ -40,17 +42,21 @@
   },
   "homepage": "https://github.com/soos-io/soos-sbom#readme",
   "dependencies": {
-    "@soos-io/api-client": "1.1.9",
+    "@soos-io/api-client": "1.2.0",
     "argparse": "^2.0.1",
     "glob": "^11.0.1",
     "tslib": "^2.6.3"
   },
   "devDependencies": {
+    "@eslint/js": "^9.21.0",
     "@types/argparse": "^2.0.16",
     "@types/node": "^20.17.19",
+    "eslint": "^9.21.0",
+    "globals": "^16.0.0",
     "knip": "^5.44.1",
     "prettier": "^3.5.1",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.24.1"
   },
   "bin": {
     "soos-sbom": "bin/index.js"
