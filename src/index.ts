@@ -43,7 +43,7 @@ class SOOSSBOMAnalysis {
     );
 
     analysisArgumentParser.addArgument(
-      "--directoriesToExclude",
+      "directoriesToExclude",
       "Listing of directories or patterns to exclude from the search for SBOM files. eg: **bin/start/**, **/start/**",
       {
         argParser: (value: string) => {
@@ -54,7 +54,7 @@ class SOOSSBOMAnalysis {
     );
 
     analysisArgumentParser.addArgument(
-      "--filesToExclude",
+      "filesToExclude",
       "Listing of files or patterns patterns to exclude from the search for SBOM files. eg: **/int**.cdx.json/, **/internal.cdx.json",
       {
         argParser: (value: string) => {
@@ -77,7 +77,6 @@ class SOOSSBOMAnalysis {
       },
     );
 
-    soosLogger.info("Parsing arguments");
     return analysisArgumentParser.parseArguments();
   }
 
