@@ -9,7 +9,7 @@
     "setup:update": "npx npm-check -u",
     "setup:clean": "npx rimraf node_modules && npx rimraf package-lock.json",
     "build": "tsc",
-    "build:clean": "npx rimraf build",
+    "build:clean": "npx rimraf bin",
     "format": "prettier ./src --check",
     "format:fix": "prettier ./src --write",
     "lint": "eslint --max-warnings 0",
