@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 import {
+  AttributionFileTypeEnum,
+  AttributionFormatEnum,
   IntegrationName,
   IntegrationType,
   ScanStatus,
@@ -24,7 +26,7 @@ import { SOOS_SBOM_CONSTANTS } from "./constants";
 import { removeDuplicates } from "./utilities";
 import * as Glob from "glob";
 
-interface SOOSSBOMAnalysisArgs extends IBaseScanArguments {
+interface ISBOMAnalysisArgs extends IBaseScanArguments {
   directoriesToExclude: Array<string>;
   filesToExclude: Array<string>;
   sbomPath: string;
@@ -32,9 +34,9 @@ interface SOOSSBOMAnalysisArgs extends IBaseScanArguments {
 }
 
 class SOOSSBOMAnalysis {
-  constructor(private args: SOOSSBOMAnalysisArgs) {}
+  constructor(private args: ISBOMAnalysisArgs) {}
 
-  static parseArgs(): SOOSSBOMAnalysisArgs {
+  static parseArgs(): ISBOMAnalysisArgs {
     const analysisArgumentParser = AnalysisArgumentParser.create(
       IntegrationName.SoosSbom,
       IntegrationType.Script,
@@ -42,36 +44,41 @@ class SOOSSBOMAnalysis {
       version,
     );
 
-    analysisArgumentParser.addBaseScanArguments();
-
-    analysisArgumentParser.argumentParser.add_argument("--directoriesToExclude", {
-      help: "Listing of directories or patterns to exclude from the search for SBOM files. eg: **bin/start/**, **/start/**",
-      type: (value: string) => {
-        return removeDuplicates(value.split(",").map((pattern) => pattern.trim()));
+    analysisArgumentParser.addArgument(
+      "directoriesToExclude",
+      "Listing of directories or patterns to exclude from the search for SBOM files. eg: **bin/start/**, **/start/**",
+      {
+        argParser: (value: string) => {
+          return removeDuplicates(value.split(",").map((pattern) => pattern.trim()));
+        },
+        defaultValue: SOOS_SBOM_CONSTANTS.DefaultDirectoriesToExclude,
       },
-      default: SOOS_SBOM_CONSTANTS.DefaultDirectoriesToExclude,
-      required: false,
-    });
+    );
 
-    analysisArgumentParser.argumentParser.add_argument("--filesToExclude", {
-      help: "Listing of files or patterns patterns to exclude from the search for SBOM files. eg: **/int**.cdx.json/, **/internal.cdx.json",
-      type: (value: string) => {
-        return value.split(",").map((pattern) => pattern.trim());
+    analysisArgumentParser.addArgument(
+      "filesToExclude",
+      "Listing of files or patterns patterns to exclude from the search for SBOM files. eg: **/int**.cdx.json/, **/internal.cdx.json",
+      {
+        argParser: (value: string) => {
+          return removeDuplicates(value.split(",").map((pattern) => pattern.trim()));
+        },
       },
-      required: false,
-    });
+    );
 
-    analysisArgumentParser.argumentParser.add_argument("sbomPath", {
-      help: "The SBOM file or folder to scan. When a folder is specified all SBOMs found in the folder and sub-folders will be scanned.",
-    });
+    analysisArgumentParser.addArgument(
+      "sbomPath",
+      "The SBOM file or folder to scan. When a folder is specified all SBOMs found in the folder and sub-folders will be scanned.",
+      { useNoOptionKey: true },
+    );
 
-    analysisArgumentParser.argumentParser.add_argument("--outputDirectory", {
-      help: "Absolute path where SOOS will write exported reports and SBOMs. eg Correct: /out/sbom/ | Incorrect: ./out/sbom/",
-      default: process.cwd(),
-      required: false,
-    });
+    analysisArgumentParser.addArgument(
+      "outputDirectory",
+      "Absolute path where SOOS will write exported reports and SBOMs. eg Correct: /out/sbom/ | Incorrect: ./out/sbom/",
+      {
+        defaultValue: process.cwd(),
+      },
+    );
 
-    soosLogger.info("Parsing arguments");
     return analysisArgumentParser.parseArguments();
   }
 
@@ -188,8 +195,8 @@ class SOOSSBOMAnalysis {
 
       if (
         isScanDone(scanStatus) &&
-        this.args.exportFormat !== undefined &&
-        this.args.exportFileType !== undefined
+        this.args.exportFormat !== AttributionFormatEnum.Unknown &&
+        this.args.exportFileType !== AttributionFileTypeEnum.Unknown
       ) {
         await soosAnalysisService.generateFormattedOutput({
           clientId: this.args.clientId,
@@ -264,12 +271,10 @@ class SOOSSBOMAnalysis {
   }
 
   static async createAndRun(): Promise<void> {
-    soosLogger.info("Starting SOOS SBOM Analysis");
-    soosLogger.logLineSeparator();
     try {
       const args = this.parseArgs();
       soosLogger.setMinLogLevel(args.logLevel);
-      soosLogger.info("Configuration read");
+      soosLogger.info("Starting SOOS SBOM Analysis");
       soosLogger.debug(
         JSON.stringify(
           obfuscateProperties(args as unknown as Record<string, unknown>, ["apiKey"]),
