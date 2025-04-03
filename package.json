@@ -1,6 +1,6 @@
 {
   "name": "@soos-io/soos-sbom",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Upload your Software Bill of Materials (SBOM) to SOOS for vulnerability analysis, license matching and more. Register for a free trial today at https://app.soos.io/register",
   "main": "bin/index.js",
   "scripts": {
