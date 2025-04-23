@@ -92,25 +92,6 @@ class SOOSSBOMAnalysis {
     let scanStatusUrl: string | undefined;
     let scanStatus: ScanStatus | undefined;
 
-    let sbomFilePaths = await this.findSbomFilePaths();
-
-    const hasMoreThanMaximumManifests = sbomFilePaths.length > SOOS_SBOM_CONSTANTS.MaxSbomsPerScan;
-    if (hasMoreThanMaximumManifests) {
-      const filesToSkip = sbomFilePaths.slice(SOOS_SBOM_CONSTANTS.MaxSbomsPerScan);
-      sbomFilePaths = sbomFilePaths.slice(0, SOOS_SBOM_CONSTANTS.MaxSbomsPerScan);
-      const filesDetectedString = StringUtilities.pluralizeTemplate(
-        sbomFilePaths.length,
-        "file was",
-        "files were",
-      );
-      const filesSkippedString = StringUtilities.pluralizeTemplate(filesToSkip.length, "file");
-      soosLogger.info(
-        `The maximum number of SBOMs per scan is ${SOOS_SBOM_CONSTANTS.MaxSbomsPerScan}. ${filesDetectedString} detected, and ${filesSkippedString} will be not be uploaded. \n`,
-        `The following SBOMs will not be included in the scan: \n`,
-        filesToSkip.map((file) => `  "${Path.parse(file).base}": "${file}"`).join("\n"),
-      );
-    }
-
     try {
       const result = await soosAnalysisService.setupScan({
         clientId: this.args.clientId,
@@ -147,10 +128,49 @@ class SOOSSBOMAnalysis {
       analysisId = result.analysisId;
       scanStatusUrl = result.scanStatusUrl;
 
+      const { sbomFilePaths, hasMoreThanMaximumManifests } = await this.findSbomFilePaths();
+
+      if (sbomFilePaths.length === 0) {
+        const noFilesMessage = `No SBOM files found. They need to match the pattern ${SOOS_SBOM_CONSTANTS.FilePattern}. See https://kb.soos.io/getting-started-with-soos-sbom-manager for more information.`;
+        await soosAnalysisService.updateScanStatus({
+          analysisId,
+          clientId: this.args.clientId,
+          projectHash,
+          branchHash,
+          scanType,
+          status: ScanStatus.NoFiles,
+          message: noFilesMessage,
+          scanStatusUrl,
+        });
+        soosLogger.error(noFilesMessage);
+        soosLogger.always(`${noFilesMessage} - exit 1`);
+        exit(1);
+      }
+
+      if (
+        sbomFilePaths.length === 1 &&
+        sbomFilePaths[0] === this.args.sbomPath &&
+        !SOOS_SBOM_CONSTANTS.FileRegex.test(sbomFilePaths[0])
+      ) {
+        const noFilesMessage = `The file does not match the required SBOM pattern ${SOOS_SBOM_CONSTANTS.FilePattern}. See https://kb.soos.io/getting-started-with-soos-sbom-manager for more information.`;
+        await soosAnalysisService.updateScanStatus({
+          analysisId,
+          clientId: this.args.clientId,
+          projectHash,
+          branchHash,
+          scanType,
+          status: ScanStatus.NoFiles,
+          message: noFilesMessage,
+          scanStatusUrl,
+        });
+        soosLogger.error(noFilesMessage);
+        soosLogger.always(`${noFilesMessage} - exit 1`);
+        exit(1);
+      }
+
       soosLogger.logLineSeparator();
 
       soosLogger.info("Uploading SBOM File(s)...");
-
       for (let i = 0; i < sbomFilePaths.length; i += SOOS_SBOM_CONSTANTS.UploadBatchSize) {
         const sbomFilePathsBatch = sbomFilePaths.slice(i, i + SOOS_SBOM_CONSTANTS.UploadBatchSize);
         const formData = await soosAnalysisService.getAnalysisFilesAsFormData(
@@ -169,7 +189,7 @@ class SOOSSBOMAnalysis {
           });
 
         soosLogger.info(
-          ` SBOM Files: \n`,
+          ` SBOM File(s): \n`,
           `  ${manifestUploadResponse.message} \n`,
           manifestUploadResponse.manifests
             ?.map((m) => `  ${m.name}: ${m.statusMessage}`)
@@ -239,15 +259,17 @@ class SOOSSBOMAnalysis {
     }
   }
 
-  async findSbomFilePaths(): Promise<string[]> {
+  async findSbomFilePaths(): Promise<{
+    sbomFilePaths: string[];
+    hasMoreThanMaximumManifests: boolean;
+  }> {
     const sbomPathStat = await FileSystem.statSync(this.args.sbomPath);
-
     if (sbomPathStat.isDirectory()) {
       const searchPattern =
         this.args.sbomPath.endsWith("/") || this.args.sbomPath.endsWith("\\")
-          ? `${this.args.sbomPath}${SOOS_SBOM_CONSTANTS.FileSyncPattern}`
-          : `${this.args.sbomPath}/${SOOS_SBOM_CONSTANTS.FileSyncPattern}`;
-      const sbomFiles = Glob.sync(searchPattern, {
+          ? `${this.args.sbomPath}${SOOS_SBOM_CONSTANTS.FilePattern}`
+          : `${this.args.sbomPath}/${SOOS_SBOM_CONSTANTS.FilePattern}`;
+      let sbomFilePaths = Glob.sync(searchPattern, {
         ignore: [
           ...(this.args.filesToExclude || []),
           ...(this.args.directoriesToExclude || []),
@@ -256,18 +278,28 @@ class SOOSSBOMAnalysis {
         nocase: true,
       });
 
-      if (!sbomFiles || sbomFiles.length == 0) {
-        throw new Error("No SBOM files found in the directory.");
+      const hasMoreThanMaximumManifests =
+        sbomFilePaths.length > SOOS_SBOM_CONSTANTS.MaxSbomsPerScan;
+      if (hasMoreThanMaximumManifests) {
+        const filesToSkip = sbomFilePaths.slice(SOOS_SBOM_CONSTANTS.MaxSbomsPerScan);
+        sbomFilePaths = sbomFilePaths.slice(0, SOOS_SBOM_CONSTANTS.MaxSbomsPerScan);
+        const filesDetectedString = StringUtilities.pluralizeTemplate(
+          sbomFilePaths.length,
+          "file was",
+          "files were",
+        );
+        const filesSkippedString = StringUtilities.pluralizeTemplate(filesToSkip.length, "file");
+        soosLogger.info(
+          `The maximum number of SBOMs per scan is ${SOOS_SBOM_CONSTANTS.MaxSbomsPerScan}. ${filesDetectedString} detected, and ${filesSkippedString} will be not be uploaded. \n`,
+          `The following SBOMs will not be included in the scan: \n`,
+          filesToSkip.map((file) => `  "${Path.parse(file).base}": "${file}"`).join("\n"),
+        );
       }
 
-      return sbomFiles;
+      return { sbomFilePaths, hasMoreThanMaximumManifests };
     }
 
-    if (!SOOS_SBOM_CONSTANTS.FileRegex.test(this.args.sbomPath)) {
-      throw new Error("The file does not match the required SBOM pattern.");
-    }
-
-    return [this.args.sbomPath];
+    return { sbomFilePaths: [this.args.sbomPath], hasMoreThanMaximumManifests: false };
   }
 
   static async createAndRun(): Promise<void> {
