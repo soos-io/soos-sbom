@@ -168,8 +168,6 @@ class SOOSSBOMAnalysis {
         exit(1);
       }
 
-      soosLogger.logLineSeparator();
-
       soosLogger.info("Uploading SBOM File(s)...");
       for (let i = 0; i < sbomFilePaths.length; i += SOOS_SBOM_CONSTANTS.UploadBatchSize) {
         const sbomFilePathsBatch = sbomFilePaths.slice(i, i + SOOS_SBOM_CONSTANTS.UploadBatchSize);
@@ -196,8 +194,6 @@ class SOOSSBOMAnalysis {
             .join("\n"),
         );
       }
-
-      soosLogger.logLineSeparator();
 
       await soosAnalysisService.startScan({
         clientId: this.args.clientId,
@@ -315,7 +311,6 @@ class SOOSSBOMAnalysis {
         ),
       );
 
-      soosLogger.logLineSeparator();
       const soosSBOMAnalysis = new SOOSSBOMAnalysis(args);
       await soosSBOMAnalysis.runAnalysis();
     } catch (error) {
