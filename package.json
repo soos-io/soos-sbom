@@ -42,7 +42,7 @@
   },
   "homepage": "https://github.com/soos-io/soos-sbom#readme",
   "dependencies": {
-    "@soos-io/api-client": "1.5.5",
+    "@soos-io/api-client": "1.5.7",
     "tslib": "^2.6.3"
   },
   "devDependencies": {
