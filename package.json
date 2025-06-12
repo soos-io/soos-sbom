@@ -43,7 +43,7 @@
   "homepage": "https://github.com/soos-io/soos-sbom#readme",
   "dependencies": {
     "@soos-io/api-client": "1.5.5",
-    "glob": "^11.0.1",
+    "glob": "^11.0.2",
     "tslib": "^2.6.3"
   },
   "devDependencies": {
@@ -55,6 +55,10 @@
     "prettier": "^3.5.1",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.29.1"
+  },
+  "overrides": {
+    "glob": "^11.0.2",
+    "brace-expansion": "2.0.1"
   },
   "bin": {
     "soos-sbom": "bin/index.js"
