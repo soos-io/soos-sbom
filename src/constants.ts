@@ -5,4 +5,5 @@ export const SOOS_SBOM_CONSTANTS = {
   UploadBatchSize: 10,
   DefaultDirectoriesToExclude: ["**/node_modules/**", "**/bin/**", "**/obj/**", "**/lib/**"],
   SoosDirectoryToExclude: "**/soos/**",
+  ObfuscatedArguments: ["apiKey"],
 };
