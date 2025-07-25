@@ -13,6 +13,8 @@ import {
   getAnalysisExitCodeWithMessage,
   StringUtilities,
   isScanDone,
+  obfuscateCommandLine,
+  reassembleCommandLine,
 } from "@soos-io/api-client/dist/utilities";
 import * as FileSystem from "fs";
 import * as Path from "path";
@@ -62,6 +64,7 @@ class SOOSSBOMAnalysis {
         argParser: (value: string) => {
           return removeDuplicates(value.split(",").map((pattern) => pattern.trim()));
         },
+        defaultValue: [],
       },
     );
 
@@ -106,21 +109,21 @@ class SOOSSBOMAnalysis {
         integrationType: this.args.integrationType,
         appVersion: this.args.appVersion,
         scriptVersion: this.args.scriptVersion,
-        contributingDeveloperAudit:
-          !this.args.contributingDeveloperId ||
-          !this.args.contributingDeveloperSource ||
-          !this.args.contributingDeveloperSourceName
-            ? []
-            : [
-                {
-                  contributingDeveloperId: this.args.contributingDeveloperId,
-                  source: this.args.contributingDeveloperSource,
-                  sourceName: this.args.contributingDeveloperSourceName,
-                },
-              ],
+        contributingDeveloperAudit: [
+          {
+            contributingDeveloperId: this.args.contributingDeveloperId,
+            source: this.args.contributingDeveloperSource,
+            sourceName: this.args.contributingDeveloperSourceName,
+          },
+        ],
         scanType,
-        toolName: undefined,
-        toolVersion: undefined,
+        commandLine:
+          process.argv.length > 2
+            ? obfuscateCommandLine(
+                reassembleCommandLine(process.argv.slice(2)),
+                SOOS_SBOM_CONSTANTS.ObfuscatedArguments.map((a) => `--${a}`),
+              )
+            : null,
       });
 
       projectHash = result.projectHash;
@@ -267,8 +270,8 @@ class SOOSSBOMAnalysis {
           : `${this.args.sbomPath}/${SOOS_SBOM_CONSTANTS.FilePattern}`;
       let sbomFilePaths = Glob.sync(searchPattern, {
         ignore: [
-          ...(this.args.filesToExclude || []),
-          ...(this.args.directoriesToExclude || []),
+          ...this.args.filesToExclude,
+          ...this.args.directoriesToExclude,
           SOOS_SBOM_CONSTANTS.SoosDirectoryToExclude,
         ],
         nocase: true,
