@@ -1,12 +1,20 @@
 {
   "editor.tabSize": 2,
   "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "always"
+  },
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "prettier.configPath": "./.prettierrc",
-  "cSpell.words": [
-    "Levelkey",
-    "Sboms",
-    "SOOS"
+  "eslint.format.enable": true,
+  "eslint.run": "onSave",
+  "eslint.workingDirectories": [
+    "./"
   ],
-  "sarif-viewer.connectToGithubCodeScanning": "off",
+  "eslint.validate": [
+    "javascript",
+    "typescript",
+  ],
+  "autoimport.spaceBetweenBraces": true,
+  "autoimport.autoComplete": true
 }
