@@ -1,6 +1,6 @@
 {
   "name": "@soos-io/soos-sbom",
-  "version": "1.2.5",
+  "version": "1.2.6",
   "description": "Upload your Software Bill of Materials (SBOM) to SOOS for vulnerability analysis, license matching and more. Register for a free trial today at https://app.soos.io/register",
   "main": "bin/index.js",
   "scripts": {
@@ -42,7 +42,7 @@
   },
   "homepage": "https://github.com/soos-io/soos-sbom#readme",
   "dependencies": {
-    "@soos-io/api-client": "1.9.4",
+    "@soos-io/api-client": "1.9.5",
     "tslib": "^2.6.3"
   },
   "devDependencies": {
