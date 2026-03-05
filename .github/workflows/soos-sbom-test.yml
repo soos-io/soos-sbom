@@ -28,4 +28,4 @@ jobs:
         run: npm link
 
       - name: Run SOOS SBOM
-        run: soos-sbom --apiURL="https://dev-api.soos.io/api/" --clientId=${{ secrets.SOOS_CLIENT_ID_DEV }} --apiKey=${{ secrets.SOOS_API_KEY_DEV }} --projectName="sbom-integration-test" "./test-files"
+        run: soos-sbom --clientId=${{ secrets.SOOS_CLIENT_ID_DEV }} --apiKey=${{ secrets.SOOS_API_KEY_DEV }} --apiURL="https://dev-api.soos.io/api/" --projectName="${{ github.event.repository.name }} test" "./test-files"
