@@ -22,7 +22,7 @@ run `npm i -g @soos-io/soos-sbom@latest`
 Then Run `soos-sbom` from any terminal and add the parameters you want.
 
 ### Locally
-run `npm install --prefix ./soos @soos-io/soos-sbom`
+run `npm install --ignore-scripts --prefix ./soos @soos-io/soos-sbom`
 Then run from the same terminal `node ./soos/node_modules/@soos-io/soos-sbom/bin/index.js`
 
 ## Client Parameters
